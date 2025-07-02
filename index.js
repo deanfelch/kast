@@ -3,6 +3,11 @@ const express = require("express");
 const multer = require("multer");
 const axios = require("axios");
 const FormData = require("form-data");
+const cors = require("cors");
+
+app.use(cors({
+  origin: "*",  // or "*" for development
+}));
 
 const app = express();
 const upload = multer();
