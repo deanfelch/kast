@@ -4,12 +4,12 @@ const multer = require("multer");
 const axios = require("axios");
 const FormData = require("form-data");
 const cors = require("cors");
+const app = express();
 
 app.use(cors({
   origin: "*",  // or "*" for development
 }));
 
-const app = express();
 const upload = multer();
 
 app.post("/upload", upload.single("file"), async (req, res) => {
