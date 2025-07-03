@@ -15,6 +15,15 @@ const axios = require("axios");
 const FormData = require("form-data");
 const cors = require("cors");
 const app = express();
+const rateLimit = require("express-rate-limit");
+
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 5, // limit each IP to 5 login attempts per windowMs
+  message: "Too many login attempts. Try again in 15 minutes.",
+  standardHeaders: true,
+  legacyHeaders: false
+});
 
 app.use(cors({
   origin: "*",  // or "*" for development
@@ -93,7 +102,7 @@ app.get("/admin/login", (req, res) => {
   `);
 });
 
-app.post("/admin/login", express.urlencoded({ extended: true }), (req, res) => {
+app.post("/admin/login", loginLimiter, express.urlencoded({ extended: true }), async (req, res) => {
   const { username, password, remember } = req.body;
 
   if (
@@ -101,6 +110,13 @@ app.post("/admin/login", express.urlencoded({ extended: true }), (req, res) => {
     password === process.env.ADMIN_PASSWORD
   ) {
     req.session.loggedIn = true;
+
+    const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
+
+    await db.execute(
+      "INSERT INTO login_attempts (username, ip_address, success) VALUES (?, ?, ?)",
+      [username, ip, username === process.env.ADMIN_USER && password === process.env.ADMIN_PASSWORD]
+    );
 
     if (remember) {
       // Session lasts 30 days
@@ -168,7 +184,31 @@ app.get("/admin/uploads", async (req, res) => {
   <head>
     <title>Kast Admin</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <style>
+<style>
+  body {
+    background-color: #121212;
+    color: #f1f1f1;
+    padding: 2rem;
+  }
+  .table {
+    color: #fff;
+  }
+  .table th,
+  .table td {
+    border-color: #444;
+  }
+  .table-light {
+    background-color: #2a2a2a;
+    color: #ccc;
+  }
+  code {
+    font-size: 0.85rem;
+    word-break: break-all;
+  }
+  a.btn {
+    margin-top: 1rem;
+  }
+</style>
       body { padding: 2rem; }
       code { font-size: 0.9rem; word-break: break-all; }
       audio { width: 180px; }
@@ -205,7 +245,7 @@ for (const row of rows) {
 html += `
         </tbody>
       </table>
-      <a href="/admin/logout" class="btn btn-outline-secondary">Logout</a>
+      <a href="/admin/logout" class="btn btn-outline-light">Logout</a>
     </div>
   </body>
 </html>
