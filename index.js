@@ -22,6 +22,44 @@ app.use(cors({
 
 const upload = multer();
 
+const session = require("express-session");
+
+app.use(session({
+  secret: process.env.SESSION_SECRET || "kast-session-secret",
+  resave: false,
+  saveUninitialized: false,
+  cookie: { maxAge: 60 * 60 * 1000 } // 1 hour
+}));
+
+app.get("/admin/login", (req, res) => {
+  res.send(`
+    <h1>Login</h1>
+    <form method="POST" action="/admin/login">
+      <input type="text" name="username" placeholder="Username"/><br/>
+      <input type="password" name="password" placeholder="Password"/><br/>
+      <button type="submit">Login</button>
+    </form>
+  `);
+});
+
+app.post("/admin/login", express.urlencoded({ extended: true }), (req, res) => {
+  const { username, password } = req.body;
+  if (
+    username === process.env.ADMIN_USER &&
+    password === process.env.ADMIN_PASSWORD
+  ) {
+    req.session.loggedIn = true;
+    return res.redirect("/admin/uploads");
+  }
+  res.send("Invalid credentials. <a href='/admin/login'>Try again</a>");
+});
+
+app.get("/admin/logout", (req, res) => {
+  req.session.destroy(() => {
+    res.redirect("/admin/login");
+  });
+});
+
 app.post("/upload", upload.single("file"), async (req, res) => {
   const data = new FormData();
   data.append("file", req.file.buffer, {
@@ -49,29 +87,12 @@ app.post("/upload", upload.single("file"), async (req, res) => {
   }
 });
 
-app.use("/admin", (req, res, next) => {
-  const auth = req.headers.authorization;
-
-  if (!auth || !auth.startsWith("Basic ")) {
-    res.setHeader("WWW-Authenticate", 'Basic realm="Admin Area"');
-    return res.status(401).send("Authentication required.");
-  }
-
-  const base64Credentials = auth.split(" ")[1];
-  const credentials = Buffer.from(base64Credentials, "base64").toString("ascii");
-  const [username, password] = credentials.split(":");
-
-  const validUser = process.env.ADMIN_USER;
-  const validPass = process.env.ADMIN_PASSWORD;
-
-  if (username !== validUser || password !== validPass) {
-    return res.status(403).send("Access denied");
-  }
-
-  next();
-});
 
 app.get("/admin/uploads", async (req, res) => {
+  if (!req.session.loggedIn) {
+    return res.redirect("/admin/login");
+  }
+  
   try {
     const [rows] = await db.execute(
       "SELECT cid, filename, uploaded_at FROM uploads ORDER BY uploaded_at DESC LIMIT 100"
