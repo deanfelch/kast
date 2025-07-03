@@ -93,32 +93,35 @@ app.get("/", (req, res) => {
 
 // File upload endpoint
 app.post("/upload", upload.single("audio"), async (req, res) => {
-  const filePath = path.join(__dirname, req.file.path);
-  const { originalname } = req.file;
-
   try {
-    const result = await axios.post("https://api.pinata.cloud/pinning/pinFileToIPFS",
-      {
-        file: req.file,
-      },
-      {
-        headers: {
-          Authorization: `Bearer ${process.env.PINATA_JWT}`,
-        },
-      });
+    if (!req.file) {
+      return res.status(400).json({ error: "No file uploaded" });
+    }
 
-    const cid = result.data.IpfsHash;
-    await db.execute(
-      "INSERT INTO uploads (cid, filename) VALUES (?, ?)",
-      [cid, originalname]
-    );
+    const audioBuffer = req.file.buffer;
+
+    // upload to pinata
+    const pinataRes = await axios.post("https://api.pinata.cloud/pinning/pinFileToIPFS", audioBuffer, {
+      maxContentLength: Infinity,
+      maxBodyLength: Infinity,
+      headers: {
+        "Content-Type": "application/octet-stream",
+        Authorization: `Bearer ${process.env.PINATA_JWT}`,
+      },
+    });
+
+    const cid = pinataRes.data.IpfsHash;
+
+    // Save to MySQL
+    await db.execute("INSERT INTO uploads (cid) VALUES (?)", [cid]);
 
     res.json({ cid });
   } catch (err) {
-    console.error("Upload error:", err);
-    res.status(500).send("Upload failed.");
+    console.error("❌ Upload error:", err);
+    res.status(500).json({ error: "Upload failed", details: err.message });
   }
 });
+
 
 app.listen(port, () => {
   console.log(`🎙️ Kast server started on port ${port}`);
