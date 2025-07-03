@@ -49,6 +49,14 @@ app.post("/upload", upload.single("file"), async (req, res) => {
   }
 });
 
+app.use("/admin", (req, res, next) => {
+  const auth = req.headers.authorization;
+  if (!auth || auth !== `Bearer ${process.env.ADMIN_SECRET}`) {
+    return res.status(403).send("Access denied");
+  }
+  next();
+});
+
 app.get("/admin/uploads", async (req, res) => {
   try {
     const [rows] = await db.execute(
