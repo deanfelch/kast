@@ -9,11 +9,12 @@ const mysql = require("mysql2/promise");
 const session = require("express-session");
 const rateLimit = require("express-rate-limit");
 require("dotenv").config();
-app.set("view engine", "ejs");
-app.set("views", path.join(__dirname, "views"));
 
 const app = express();
 const port = process.env.PORT || 3000;
+
+app.set("view engine", "ejs");
+app.set("views", path.join(__dirname, "views"));
 
 const db = mysql.createPool({
   host: process.env.MYSQL_HOST,
