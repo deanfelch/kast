@@ -1,3 +1,4 @@
+
 require("dotenv").config();
 const express = require("express");
 const multer = require("multer");
@@ -30,6 +31,10 @@ app.post("/upload", upload.single("file"), async (req, res) => {
       }
     );
     res.json(pinataRes.data);
+    await db.execute(
+      "INSERT INTO uploads (cid, filename) VALUES (?, ?)",
+      [pinataRes.data.IpfsHash, req.file.originalname]
+    );
   } catch (err) {
     res.status(500).json({ error: "Pinning failed", details: err.message });
   }
