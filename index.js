@@ -1,3 +1,5 @@
+require("dotenv").config();
+
 const mysql = require("mysql2/promise");
 
 const db = mysql.createPool({
@@ -7,7 +9,6 @@ const db = mysql.createPool({
   database: process.env.MYSQL_DATABASE
 });
 
-require("dotenv").config();
 const express = require("express");
 const multer = require("multer");
 const axios = require("axios");
