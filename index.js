@@ -91,33 +91,36 @@ app.get("/", (req, res) => {
   res.render("public");
 });
 
-// File upload endpoint
+const FormData = require("form-data");
+
 app.post("/upload", upload.single("audio"), async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ error: "No file uploaded" });
     }
 
-    const audioBuffer = req.file.buffer;
+    const formData = new FormData();
+    formData.append("file", req.file.buffer, {
+      filename: req.file.originalname,
+      contentType: req.file.mimetype,
+    });
 
-    // upload to pinata
-    const pinataRes = await axios.post("https://api.pinata.cloud/pinning/pinFileToIPFS", audioBuffer, {
+    const pinataRes = await axios.post("https://api.pinata.cloud/pinning/pinFileToIPFS", formData, {
       maxContentLength: Infinity,
       maxBodyLength: Infinity,
       headers: {
-        "Content-Type": "application/octet-stream",
+        ...formData.getHeaders(),
         Authorization: `Bearer ${process.env.PINATA_JWT}`,
       },
     });
 
     const cid = pinataRes.data.IpfsHash;
 
-    // Save to MySQL
     await db.execute("INSERT INTO uploads (cid) VALUES (?)", [cid]);
 
     res.json({ cid });
   } catch (err) {
-    console.error("❌ Upload error:", err);
+    console.error("❌ Upload error:", err.response?.data || err.message);
     res.status(500).json({ error: "Upload failed", details: err.message });
   }
 });
