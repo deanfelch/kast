@@ -32,6 +32,7 @@ app.use(session({
 }));
 
 app.get("/admin/login", (req, res) => {
+  const error = req.query.error === "1"; // ?error=1 triggers error message
   res.send(`
     <!DOCTYPE html>
     <html>
@@ -44,22 +45,31 @@ app.get("/admin/login", (req, res) => {
             align-items: center;
             justify-content: center;
             height: 100vh;
-            background-color: #f8f9fa;
+            background-color: #121212;
+            color: #f1f1f1;
           }
           .login-box {
             width: 100%;
             max-width: 400px;
             padding: 2rem;
-            border: 1px solid #ddd;
             border-radius: 8px;
-            background-color: white;
-            box-shadow: 0 0 12px rgba(0,0,0,0.05);
+            background-color: #1e1e1e;
+            box-shadow: 0 0 24px rgba(0,0,0,0.4);
+          }
+          label, .form-text {
+            color: #ccc;
+          }
+          .form-control {
+            background-color: #2a2a2a;
+            color: #f1f1f1;
+            border: 1px solid #444;
           }
         </style>
       </head>
       <body>
         <div class="login-box">
           <h2 class="mb-4 text-center">🔐 Kast Admin Login</h2>
+          ${error ? `<div class="alert alert-danger" role="alert">Invalid credentials. Please try again.</div>` : ""}
           <form method="POST" action="/admin/login">
             <div class="mb-3">
               <label for="username" class="form-label">Username</label>
@@ -68,6 +78,12 @@ app.get("/admin/login", (req, res) => {
             <div class="mb-3">
               <label for="password" class="form-label">Password</label>
               <input type="password" class="form-control" id="password" name="password" required>
+            </div>
+            <div class="form-check mb-3">
+              <input class="form-check-input" type="checkbox" name="remember" id="remember">
+              <label class="form-check-label" for="remember">
+                Remember me
+              </label>
             </div>
             <button type="submit" class="btn btn-primary w-100">Login</button>
           </form>
@@ -78,15 +94,27 @@ app.get("/admin/login", (req, res) => {
 });
 
 app.post("/admin/login", express.urlencoded({ extended: true }), (req, res) => {
-  const { username, password } = req.body;
+  const { username, password, remember } = req.body;
+
   if (
     username === process.env.ADMIN_USER &&
     password === process.env.ADMIN_PASSWORD
   ) {
     req.session.loggedIn = true;
+
+    if (remember) {
+      // Session lasts 30 days
+      req.session.cookie.maxAge = 1000 * 60 * 60 * 24 * 30;
+    } else {
+      // Default 1 hour session
+      req.session.cookie.expires = false;
+    }
+
     return res.redirect("/admin/uploads");
   }
-  res.send("Invalid credentials. <a href='/admin/login'>Try again</a>");
+
+  // Redirect with error flag
+  res.redirect("/admin/login?error=1");
 });
 
 app.get("/admin/logout", (req, res) => {
