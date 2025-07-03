@@ -100,11 +100,53 @@ app.get("/admin/uploads", async (req, res) => {
 
     // Simple HTML for now
     let html = `
-      <html><head><title>Kast Admin</title></head><body>
-      <h1>Uploaded Files</h1>
-      <table border="1" cellpadding="5">
-        <tr><th>CID</th><th>Filename</th><th>Uploaded At</th><th>Play</th></tr>
-    `;
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Kast Admin</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+      body { padding: 2rem; }
+      code { font-size: 0.9rem; word-break: break-all; }
+      audio { width: 180px; }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1 class="mb-4">🎙️ Kast Admin - Uploads</h1>
+      <table class="table table-bordered table-striped">
+        <thead class="table-light">
+          <tr>
+            <th>CID</th>
+            <th>Filename</th>
+            <th>Uploaded At</th>
+            <th>Play</th>
+          </tr>
+        </thead>
+        <tbody>
+`;
+
+for (const row of rows) {
+  html += `
+    <tr>
+      <td><code>${row.cid}</code></td>
+      <td>${row.filename}</td>
+      <td>${new Date(row.uploaded_at).toLocaleString()}</td>
+      <td>
+        <audio controls src="https://gateway.pinata.cloud/ipfs/${row.cid}"></audio>
+      </td>
+    </tr>
+  `;
+}
+
+html += `
+        </tbody>
+      </table>
+      <a href="/admin/logout" class="btn btn-outline-secondary">Logout</a>
+    </div>
+  </body>
+</html>
+`;
 
     for (const row of rows) {
       html += `<tr>
