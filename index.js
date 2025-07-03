@@ -87,6 +87,10 @@ app.get("/admin/uploads", async (req, res) => {
   res.render("uploads", { uploads: rows });
 });
 
+app.get("/", (req, res) => {
+  res.render("public");
+});
+
 // File upload endpoint
 app.post("/upload", upload.single("audio"), async (req, res) => {
   const filePath = path.join(__dirname, req.file.path);
