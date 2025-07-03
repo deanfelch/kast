@@ -51,9 +51,23 @@ app.post("/upload", upload.single("file"), async (req, res) => {
 
 app.use("/admin", (req, res, next) => {
   const auth = req.headers.authorization;
-  if (!auth || auth !== `Bearer ${process.env.ADMIN_SECRET}`) {
+
+  if (!auth || !auth.startsWith("Basic ")) {
+    res.setHeader("WWW-Authenticate", 'Basic realm="Admin Area"');
+    return res.status(401).send("Authentication required.");
+  }
+
+  const base64Credentials = auth.split(" ")[1];
+  const credentials = Buffer.from(base64Credentials, "base64").toString("ascii");
+  const [username, password] = credentials.split(":");
+
+  const validUser = process.env.ADMIN_USER;
+  const validPass = process.env.ADMIN_PASSWORD;
+
+  if (username !== validUser || password !== validPass) {
     return res.status(403).send("Access denied");
   }
+
   next();
 });
 
