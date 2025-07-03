@@ -28,6 +28,7 @@ const upload = multer({ dest: "uploads/" });
 app.use(cors({ origin: "https://kasting.space" }));
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
+app.use(express.static(path.join(__dirname, "public")));
 
 app.use(
   session({
