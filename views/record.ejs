@@ -39,7 +39,31 @@
       mediaRecorder.onstop = () => {
         ws.close();
         status.textContent = "Upload complete. Processing...";
+
+        let attempts = 0;
+        const maxAttempts = 6; // try up to 12s
+        const pollInterval = setInterval(async () => {
+          attempts++;
+          try {
+            const res = await fetch("/latest-cid");
+            if (res.ok) {
+              const data = await res.json();
+              if (data.cid) {
+                clearInterval(pollInterval);
+                status.innerHTML = `
+                  ✅ Uploaded to IPFS:<br>
+                  <a href="https://gateway.pinata.cloud/ipfs/${data.cid}" target="_blank">${data.cid}</a>
+                `;
+              }
+            }
+          } catch (e) {
+            console.warn("Polling error:", e);
+          }
+          if (attempts >= maxAttempts) clearInterval(pollInterval);
+        }, 2000);
       };
+
+
 
       document.getElementById("startBtn").disabled = true;
       document.getElementById("stopBtn").disabled = false;
