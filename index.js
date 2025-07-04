@@ -87,10 +87,6 @@ app.get("/admin/uploads", async (req, res) => {
   res.render("uploads", { uploads: rows });
 });
 
-app.get("/", (req, res) => {
-  res.render("record");
-});
-
 app.get("/record", (req, res) => {
   res.render("record");
 });
@@ -101,8 +97,8 @@ const crypto = require("crypto");
 const FormData = require("form-data");
 
 // Reuse existing server
-const server = app.listen(process.env.PORT || 3000, () => {
-  console.log("🎙️ Kast server started on port", process.env.PORT || 3000);
+const server = app.listen(process.env.PORT || 4000, () => {
+  console.log("🎙️ Kast server started on port", process.env.PORT || 4000);
 });
 
 const wss = new WebSocketServer({ server, path: "/ws-record" });
