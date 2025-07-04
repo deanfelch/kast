@@ -91,6 +91,10 @@ app.get("/", (req, res) => {
   res.render("public");
 });
 
+app.get("/record", (req, res) => {
+  res.render("record");
+});
+
 const FormData = require("form-data");
 
 app.post("/upload", upload.single("audio"), async (req, res) => {
@@ -123,6 +127,54 @@ app.post("/upload", upload.single("audio"), async (req, res) => {
     console.error("❌ Upload error:", err.response?.data || err.message);
     res.status(500).json({ error: "Upload failed", details: err.message });
   }
+});
+
+const { WebSocketServer } = require("ws");
+const fs = require("fs");
+const crypto = require("crypto");
+const FormData = require("form-data");
+
+// Reuse existing server
+const server = app.listen(process.env.PORT || 3000, () => {
+  console.log("🎙️ Kast server started on port", process.env.PORT || 3000);
+});
+
+const wss = new WebSocketServer({ server, path: "/ws-record" });
+
+wss.on("connection", (ws) => {
+  const tempId = crypto.randomUUID();
+  const filePath = `uploads/${tempId}.webm`;
+  const writeStream = fs.createWriteStream(filePath);
+
+  ws.on("message", (chunk) => {
+    writeStream.write(chunk);
+  });
+
+  ws.on("close", async () => {
+    writeStream.end();
+    try {
+      // Pin to Pinata
+      const form = new FormData();
+      form.append("file", fs.createReadStream(filePath));
+
+      const pinataRes = await axios.post("https://api.pinata.cloud/pinning/pinFileToIPFS", form, {
+        maxContentLength: Infinity,
+        maxBodyLength: Infinity,
+        headers: {
+          ...form.getHeaders(),
+          Authorization: `Bearer ${process.env.PINATA_JWT}`,
+        },
+      });
+
+      const cid = pinataRes.data.IpfsHash;
+      await db.execute("INSERT INTO uploads (cid) VALUES (?)", [cid]);
+      console.log(`✅ Recording uploaded to IPFS: ${cid}`);
+
+      fs.unlinkSync(filePath); // Optional: delete temp file
+    } catch (err) {
+      console.error("❌ WebSocket recording upload failed:", err.message || err);
+    }
+  });
 });
 
 
