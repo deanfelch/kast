@@ -92,7 +92,7 @@ app.post("/register", async (req, res) => {
 });
 
 // Login form
-app.get("/login", (req, res) => {
+app.get("/login-user", (req, res) => {
   res.render("login-user", { error: null });
 });
 
@@ -100,23 +100,23 @@ app.get("/login", (req, res) => {
 app.post("/login", async (req, res) => {
   const { email, password } = req.body;
   if (!email || !password) {
-    return res.render("login", { error: "Email and password required." });
+    return res.render("login-user", { error: "Email and password required." });
   }
   try {
     const [rows] = await db.execute("SELECT * FROM users WHERE email = ?", [email]);
     if (rows.length === 0) {
-      return res.render("login", { error: "Invalid credentials." });
+      return res.render("login-user", { error: "Invalid credentials." });
     }
     const user = rows[0];
     const valid = await bcrypt.compare(password, user.password_hash);
     if (!valid) {
-      return res.render("login", { error: "Invalid credentials." });
+      return res.render("login-user", { error: "Invalid credentials." });
     }
     req.session.user = { id: user.id, username: user.username };
     res.redirect("/record");
   } catch (err) {
     console.error(err);
-    res.render("login", { error: "Something went wrong." });
+    res.render("login-user", { error: "Something went wrong." });
   }
 });
 
