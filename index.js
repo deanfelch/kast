@@ -1,5 +1,9 @@
-// index.js (Cleaned with latest-cid + fixed listen)
+// index.js (with user registration/login)
+
+// Load environment variables
 require("dotenv").config();
+
+// Core dependencies and middleware
 const express = require("express");
 const session = require("express-session");
 const fileUpload = require("multer")();
@@ -8,13 +12,14 @@ const mysql = require("mysql2/promise");
 const fs = require("fs");
 const crypto = require("crypto");
 const axios = require("axios");
+const bcrypt = require("bcrypt");
 const FormData = require("form-data");
 const { WebSocketServer } = require("ws");
 
 const app = express();
 const port = process.env.PORT || 3000;
 
-// DB setup
+// MySQL database connection pool
 const db = mysql.createPool({
   host: process.env.MYSQL_HOST,
   user: process.env.MYSQL_USER,
@@ -22,7 +27,7 @@ const db = mysql.createPool({
   database: process.env.MYSQL_DATABASE,
 });
 
-// Middleware
+// Middleware setup
 app.use(express.static(path.join(__dirname, "public")));
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
@@ -34,31 +39,110 @@ app.use(
   })
 );
 
+// View engine setup
 app.set("view engine", "ejs");
 app.set("views", path.join(__dirname, "views"));
 
-// Routes
+// Middleware to protect authenticated routes
+function requireAuth(req, res, next) {
+  if (!req.session.user) return res.redirect("/login");
+  next();
+}
+
+// Public home page
 app.get("/", (req, res) => {
-  res.render("public");
+  res.render("public", { user: req.session.user });
 });
 
-app.get("/record", (req, res) => {
-  res.render("record");
+// Recording page (requires login)
+app.get("/record", requireAuth, (req, res) => {
+  res.render("record", { user: req.session.user });
 });
 
-app.get("/admin/login", (req, res) => {
+// ======================
+// User Registration/Login
+// ======================
+
+// Registration form
+app.get("/register", (req, res) => {
+  res.render("register", { error: null });
+});
+
+// Handle registration
+app.post("/register", async (req, res) => {
+  const { username, email, password } = req.body;
+  if (!username || !email || !password) {
+    return res.render("register", { error: "All fields are required." });
+  }
+  try {
+    const hash = await bcrypt.hash(password, 10);
+    await db.execute(
+      "INSERT INTO users (username, email, password_hash) VALUES (?, ?, ?)",
+      [username, email, hash]
+    );
+    res.redirect("/login");
+  } catch (err) {
+    console.error(err);
+    res.render("register", { error: "Username or email already exists." });
+  }
+});
+
+// Login form
+app.get("/login", (req, res) => {
   res.render("login", { error: null });
 });
 
+// Handle login
+app.post("/login", async (req, res) => {
+  const { email, password } = req.body;
+  if (!email || !password) {
+    return res.render("login", { error: "Email and password required." });
+  }
+  try {
+    const [rows] = await db.execute("SELECT * FROM users WHERE email = ?", [email]);
+    if (rows.length === 0) {
+      return res.render("login", { error: "Invalid credentials." });
+    }
+    const user = rows[0];
+    const valid = await bcrypt.compare(password, user.password_hash);
+    if (!valid) {
+      return res.render("login", { error: "Invalid credentials." });
+    }
+    req.session.user = { id: user.id, username: user.username };
+    res.redirect("/record");
+  } catch (err) {
+    console.error(err);
+    res.render("login", { error: "Something went wrong." });
+  }
+});
+
+// Handle logout
+app.get("/logout", (req, res) => {
+  req.session.destroy(() => {
+    res.redirect("/");
+  });
+});
+
+// ======================
+// Admin Dashboard
+// ======================
+
+// Admin login form
+app.get("/admin/login", (req, res) => {
+  res.render("admin-login", { error: null });
+});
+
+// Handle admin login (password only)
 app.post("/admin/login", async (req, res) => {
   const { password } = req.body;
   if (password === process.env.ADMIN_PASSWORD) {
     req.session.authenticated = true;
     return res.redirect("/admin/uploads");
   }
-  res.render("login", { error: "Incorrect password" });
+  res.render("admin-login", { error: "Incorrect password" });
 });
 
+// Admin view of all uploads
 app.get("/admin/uploads", async (req, res) => {
   if (!req.session.authenticated) return res.redirect("/admin/login");
   try {
@@ -70,9 +154,13 @@ app.get("/admin/uploads", async (req, res) => {
   }
 });
 
+// ======================
+// Audio Upload Endpoint
+// ======================
+
 app.post("/upload", fileUpload.single("audio"), async (req, res) => {
   try {
-    if (!req.file) return res.status(400).json({ error: "No file uploaded" });
+    if (!req.file || !req.session.user) return res.status(401).json({ error: "Unauthorized or no file" });
 
     const formData = new FormData();
     formData.append("file", req.file.buffer, {
@@ -80,6 +168,7 @@ app.post("/upload", fileUpload.single("audio"), async (req, res) => {
       contentType: req.file.mimetype,
     });
 
+    // Upload to Pinata
     const pinataRes = await axios.post(
       "https://api.pinata.cloud/pinning/pinFileToIPFS",
       formData,
@@ -94,7 +183,7 @@ app.post("/upload", fileUpload.single("audio"), async (req, res) => {
     );
 
     const cid = pinataRes.data.IpfsHash;
-    await db.execute("INSERT INTO uploads (cid) VALUES (?)", [cid]);
+    await db.execute("INSERT INTO uploads (cid, user_id) VALUES (?, ?)", [cid, req.session.user.id]);
     res.json({ cid });
   } catch (err) {
     console.error("Upload error:", err.response?.data || err);
@@ -102,7 +191,7 @@ app.post("/upload", fileUpload.single("audio"), async (req, res) => {
   }
 });
 
-// JSON endpoint to return latest CID
+// Get the latest CID for polling
 app.get("/latest-cid", async (req, res) => {
   try {
     const [rows] = await db.execute("SELECT cid FROM uploads ORDER BY id DESC LIMIT 1");
@@ -117,23 +206,28 @@ app.get("/latest-cid", async (req, res) => {
   }
 });
 
-// Server start (only once)
+// Start Express server
 const server = app.listen(port, () => {
   console.log(`🎙️ Kast server started on port ${port}`);
 });
 
-// WebSocket Server for live recording
+// ======================
+// WebSocket for Live Audio
+// ======================
+
 const wss = new WebSocketServer({ server, path: "/ws-record" });
 
-wss.on("connection", (ws) => {
+wss.on("connection", (ws, req) => {
   const tempId = crypto.randomUUID();
   const filePath = `uploads/${tempId}.webm`;
   const writeStream = fs.createWriteStream(filePath);
 
+  // Write incoming audio chunks
   ws.on("message", (chunk) => {
     writeStream.write(chunk);
   });
 
+  // Finalize and upload on close
   ws.on("close", async () => {
     writeStream.end();
     try {
@@ -150,7 +244,8 @@ wss.on("connection", (ws) => {
       });
 
       const cid = pinataRes.data.IpfsHash;
-      await db.execute("INSERT INTO uploads (cid) VALUES (?)", [cid]);
+      const userId = req.session?.user?.id || null;
+      await db.execute("INSERT INTO uploads (cid, user_id) VALUES (?, ?)", [cid, userId]);
       console.log(`✅ Live recording uploaded: ${cid}`);
       fs.unlinkSync(filePath);
     } catch (err) {
