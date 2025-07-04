@@ -1,21 +1,20 @@
-// index.js (cleaned up Kast server)
-
+// index.js (Cleaned with latest-cid + fixed listen)
+require("dotenv").config();
 const express = require("express");
-const multer = require("multer");
-const cors = require("cors");
-const axios = require("axios");
+const session = require("express-session");
+const fileUpload = require("multer")();
 const path = require("path");
 const mysql = require("mysql2/promise");
-const session = require("express-session");
-const rateLimit = require("express-rate-limit");
-require("dotenv").config();
+const fs = require("fs");
+const crypto = require("crypto");
+const axios = require("axios");
+const FormData = require("form-data");
+const { WebSocketServer } = require("ws");
 
 const app = express();
 const port = process.env.PORT || 3000;
 
-app.set("view engine", "ejs");
-app.set("views", path.join(__dirname, "views"));
-
+// DB setup
 const db = mysql.createPool({
   host: process.env.MYSQL_HOST,
   user: process.env.MYSQL_USER,
@@ -23,74 +22,87 @@ const db = mysql.createPool({
   database: process.env.MYSQL_DATABASE,
 });
 
-const upload = multer({ dest: "uploads/" });
-
-app.use(cors({ origin: "https://kasting.space" }));
+// Middleware
+app.use(express.static(path.join(__dirname, "public")));
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
-app.use(express.static(path.join(__dirname, "public")));
-
 app.use(
   session({
-    secret: process.env.SESSION_SECRET || "kast-session-secret",
+    secret: process.env.SESSION_SECRET || "kast_secret",
     resave: false,
     saveUninitialized: false,
-    cookie: { maxAge: 1000 * 60 * 60 }, // 1 hour
   })
 );
 
-// Rate limiter for login attempts
-const loginLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 5,
-  message: "Too many login attempts. Try again in 15 minutes.",
-  standardHeaders: true,
-  legacyHeaders: false,
-});
+app.set("view engine", "ejs");
+app.set("views", path.join(__dirname, "views"));
 
-app.get("/admin/login", (req, res) => {
-  res.render("login", { error: req.query.error === "1" });
-});
-
-app.post("/admin/login", loginLimiter, async (req, res) => {
-  const { username, password, remember } = req.body;
-  const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
-  const success = username === process.env.ADMIN_USER && password === process.env.ADMIN_PASSWORD;
-
-  await db.execute(
-    "INSERT INTO login_attempts (username, ip_address, success) VALUES (?, ?, ?)",
-    [username, ip, success]
-  );
-
-  if (success) {
-    req.session.loggedIn = true;
-    req.session.cookie.maxAge = remember ? 1000 * 60 * 60 * 24 * 30 : null;
-    return res.redirect("/admin/uploads");
-  }
-
-  res.redirect("/admin/login?error=1");
-});
-
-app.get("/admin/logout", (req, res) => {
-  req.session.destroy(() => {
-    res.redirect("/admin/login");
-  });
-});
-
-app.get("/admin/uploads", async (req, res) => {
-  if (!req.session.loggedIn) return res.redirect("/admin/login");
-
-  const [rows] = await db.execute(
-    "SELECT cid, filename, uploaded_at FROM uploads ORDER BY uploaded_at DESC LIMIT 100"
-  );
-
-  res.render("uploads", { uploads: rows });
+// Routes
+app.get("/", (req, res) => {
+  res.render("public");
 });
 
 app.get("/record", (req, res) => {
   res.render("record");
 });
 
+app.get("/admin/login", (req, res) => {
+  res.render("login", { error: null });
+});
+
+app.post("/admin/login", async (req, res) => {
+  const { password } = req.body;
+  if (password === process.env.ADMIN_PASSWORD) {
+    req.session.authenticated = true;
+    return res.redirect("/admin/uploads");
+  }
+  res.render("login", { error: "Incorrect password" });
+});
+
+app.get("/admin/uploads", async (req, res) => {
+  if (!req.session.authenticated) return res.redirect("/admin/login");
+  try {
+    const [rows] = await db.execute("SELECT * FROM uploads ORDER BY id DESC");
+    res.render("uploads", { uploads: rows });
+  } catch (err) {
+    console.error("DB error:", err);
+    res.status(500).send("Database error");
+  }
+});
+
+app.post("/upload", fileUpload.single("audio"), async (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ error: "No file uploaded" });
+
+    const formData = new FormData();
+    formData.append("file", req.file.buffer, {
+      filename: req.file.originalname,
+      contentType: req.file.mimetype,
+    });
+
+    const pinataRes = await axios.post(
+      "https://api.pinata.cloud/pinning/pinFileToIPFS",
+      formData,
+      {
+        maxContentLength: Infinity,
+        maxBodyLength: Infinity,
+        headers: {
+          ...formData.getHeaders(),
+          Authorization: `Bearer ${process.env.PINATA_JWT}`,
+        },
+      }
+    );
+
+    const cid = pinataRes.data.IpfsHash;
+    await db.execute("INSERT INTO uploads (cid) VALUES (?)", [cid]);
+    res.json({ cid });
+  } catch (err) {
+    console.error("Upload error:", err.response?.data || err);
+    res.status(500).json({ error: "Upload failed", details: err.message });
+  }
+});
+
+// JSON endpoint to return latest CID
 app.get("/latest-cid", async (req, res) => {
   try {
     const [rows] = await db.execute("SELECT cid FROM uploads ORDER BY id DESC LIMIT 1");
@@ -105,16 +117,12 @@ app.get("/latest-cid", async (req, res) => {
   }
 });
 
-const { WebSocketServer } = require("ws");
-const fs = require("fs");
-const crypto = require("crypto");
-const FormData = require("form-data");
-
-// Reuse existing server
-const server = app.listen(process.env.PORT || 4000, () => {
-  console.log("🎙️ Kast server started on port", process.env.PORT || 4000);
+// Server start (only once)
+const server = app.listen(port, () => {
+  console.log(`🎙️ Kast server started on port ${port}`);
 });
 
+// WebSocket Server for live recording
 const wss = new WebSocketServer({ server, path: "/ws-record" });
 
 wss.on("connection", (ws) => {
@@ -129,7 +137,6 @@ wss.on("connection", (ws) => {
   ws.on("close", async () => {
     writeStream.end();
     try {
-      // Pin to Pinata
       const form = new FormData();
       form.append("file", fs.createReadStream(filePath));
 
@@ -144,16 +151,10 @@ wss.on("connection", (ws) => {
 
       const cid = pinataRes.data.IpfsHash;
       await db.execute("INSERT INTO uploads (cid) VALUES (?)", [cid]);
-      console.log(`✅ Recording uploaded to IPFS: ${cid}`);
-
-      fs.unlinkSync(filePath); // Optional: delete temp file
+      console.log(`✅ Live recording uploaded: ${cid}`);
+      fs.unlinkSync(filePath);
     } catch (err) {
-      console.error("❌ WebSocket recording upload failed:", err.message || err);
+      console.error("❌ Live recording upload failed:", err.message || err);
     }
   });
-});
-
-
-app.listen(port, () => {
-  console.log(`🎙️ Kast server started on port ${port}`);
 });
