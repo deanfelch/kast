@@ -51,8 +51,12 @@ function requireAuth(req, res, next) {
 
 // Public home page
 app.get("/", (req, res) => {
-  res.render("public", { user: req.session.user });
+  if (req.session.user) {
+    return res.redirect("/record");
+  }
+  res.redirect("/login-user");
 });
+
 
 // Recording page (requires login)
 app.get("/record", requireAuth, (req, res) => {
@@ -65,7 +69,7 @@ app.get("/record", requireAuth, (req, res) => {
 
 // Registration form
 app.get("/register", (req, res) => {
-  res.render("register", { error: null });
+  res.render("register-user", { error: null });
 });
 
 // Handle registration
@@ -89,7 +93,7 @@ app.post("/register", async (req, res) => {
 
 // Login form
 app.get("/login", (req, res) => {
-  res.render("login", { error: null });
+  res.render("login-user", { error: null });
 });
 
 // Handle login
