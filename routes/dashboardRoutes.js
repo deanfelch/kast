@@ -18,7 +18,7 @@ router.get("/dashboard", ensureLoggedIn, async (req, res) => {
     LEFT JOIN uploads u ON c.id = u.conversation_id
     WHERE c.user_id = ?
     GROUP BY c.id
-    ORDER BY c.created_at DESC
+    ORDER BY c.uploaded_at DESC
   `, [userId]);
 
   res.render("frontend/dashboard", {
