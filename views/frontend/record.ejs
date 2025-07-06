@@ -46,6 +46,7 @@
     ws.onmessage = (event) => {
       const data = JSON.parse(event.data);
       if (data.status === "complete") {
+        console.log("Received message:", msg);
         status.innerHTML = `
           ✅ Uploaded to IPFS:<br>
           <a href="${data.url}" target="_blank">${data.cid}</a>

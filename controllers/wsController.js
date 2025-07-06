@@ -43,8 +43,9 @@ writeStream.on("finish", async () => {
     );
 
     console.log("✅ Live recording uploaded:", cid);
-
+    
     if (ws.readyState === ws.OPEN) {
+      console.log("Sending CID to client:", cid);
       ws.send(
         JSON.stringify({
           status: "complete",
