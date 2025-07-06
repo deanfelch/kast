@@ -13,44 +13,59 @@ exports.handleWebSocket = (wss) => {
     const writeStream = fs.createWriteStream(filePath);
 
     ws.on("message", (chunk) => writeStream.write(chunk));
-    ws.on("close", async () => {
-      writeStream.end();
-      try {
-        const form = new FormData();
-        form.append("file", fs.createReadStream(filePath));
-        const pinataRes = await axios.post("https://api.pinata.cloud/pinning/pinFileToIPFS", form, {
-          maxBodyLength: "Infinity",
-          headers: {
-            Authorization: `Bearer ${process.env.PINATA_JWT}`,
-            ...form.getHeaders()
-          }
-        });
+    ws.on("close", () => {
+  writeStream.end();
+});
 
-        const cid = pinataRes.data.IpfsHash;
-        const userId = ws.userId || null;
+writeStream.on("finish", async () => {
+  try {
+    const form = new FormData();
+    form.append("file", fs.createReadStream(filePath));
 
-        await db.execute("INSERT INTO uploads (cid, filename, user_id) VALUES (?, ?, ?)", [
-          cid,
-          `${id}.webm`,
-          userId
-        ]);
+    const pinataRes = await axios.post(
+      "https://api.pinata.cloud/pinning/pinFileToIPFS",
+      form,
+      {
+        maxBodyLength: "Infinity",
+        headers: {
+          Authorization: `Bearer ${process.env.PINATA_JWT}`,
+          ...form.getHeaders(),
+        },
+      }
+    );
 
-        console.log("✅ Live recording uploaded:", cid);
+    const cid = pinataRes.data.IpfsHash;
+    const userId = ws.userId || null;
 
-        // ✅ Send response back to client
-        ws.send(JSON.stringify({
+    await db.execute(
+      "INSERT INTO uploads (cid, filename, user_id) VALUES (?, ?, ?)",
+      [cid, path.basename(filePath), userId]
+    );
+
+    console.log("✅ Live recording uploaded:", cid);
+
+    if (ws.readyState === ws.OPEN) {
+      ws.send(
+        JSON.stringify({
           status: "complete",
           cid,
           url: `https://gateway.pinata.cloud/ipfs/${cid}`,
-          filename: `${id}.webm`
-        }));
-
-      } catch (err) {
-        console.error("❌ Live recording upload failed:", err.message);
-        ws.send(JSON.stringify({ status: "error", message: err.message }));
-      } finally {
-        fs.unlink(filePath, () => {});
-      }
-    });
+        })
+      );
+    }
+  } catch (err) {
+    console.error("❌ Live recording upload failed:", err.message);
+    if (ws.readyState === ws.OPEN) {
+      ws.send(
+        JSON.stringify({
+          status: "error",
+          message: err.message,
+        })
+      );
+    }
+  } finally {
+    fs.unlink(filePath, () => {});
+  }
+});
   });
 };
