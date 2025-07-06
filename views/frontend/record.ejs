@@ -18,7 +18,7 @@
 
   <script>
     const conversationId = "<%= conversationId || '' %>";
-    
+
     let mediaRecorder;
     let ws;
     let isRecording = false;
@@ -44,6 +44,8 @@
         ws = new WebSocket(`wss://${window.location.host}/ws-record`);
 
         ws.onopen = () => {
+          ws.send(JSON.stringify({ conversationId }));
+          
           status.textContent = "Recording and streaming...";
           mediaRecorder.start(1000); // Collect 1s chunks
           isRecording = true;

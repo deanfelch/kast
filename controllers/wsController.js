@@ -20,6 +20,7 @@ exports.handleWebSocket = (wss) => {
     console.log(`🎧 New recording session started: ${id}`);
 
     let cleanFinish = false;
+    let conversationId = null;
 
     const timeout = setTimeout(() => {
       console.warn(`⚠️ Timeout: no 'done' signal received for ${id}`);
@@ -30,6 +31,12 @@ exports.handleWebSocket = (wss) => {
       // 🧠 Check if it's a JSON "done" signal
       try {
         const signal = JSON.parse(chunk.toString());
+
+        if (signal.conversationId) {
+          conversationId = parseInt(msg.conversationId); // 💾 Capture conversation ID
+          return;
+        }
+
         if (signal.done) {
           clearTimeout(timeout);
           cleanFinish = true;
@@ -64,11 +71,12 @@ exports.handleWebSocket = (wss) => {
         const userId = ws.userId || null;
 
         // Log in DB
-        await db.execute("INSERT INTO uploads (cid, filename, user_id, interrupted) VALUES (?, ?, ?, ?)", [
+        await db.execute("INSERT INTO uploads (cid, filename, user_id, interrupted, conversation_id) VALUES (?, ?, ?, ?, ?)", [
           cid,
           `${id}.webm`,
           userId,
-          !cleanFinish
+          !cleanFinish,
+          conversationId
         ]);
 
         const url = `https://gateway.pinata.cloud/ipfs/${cid}`;
