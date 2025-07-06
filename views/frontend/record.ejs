@@ -19,64 +19,102 @@
   <script>
     let mediaRecorder;
     let ws;
+    let isRecording = false;
 
     document.getElementById("startBtn").onclick = async () => {
       const status = document.getElementById("status");
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      mediaRecorder = new MediaRecorder(stream);
-      ws = new WebSocket(`wss://${window.location.host}/ws-record`);
+      const startBtn = document.getElementById("startBtn");
+      const stopBtn = document.getElementById("stopBtn");
 
-      ws.onopen = () => {
-        status.textContent = "Recording and streaming...";
-        mediaRecorder.start(1000);
-      };
+      // Disable buttons while initializing
+      startBtn.disabled = true;
+      stopBtn.disabled = true;
+      status.textContent = "Initializing...";
 
-      mediaRecorder.ondataavailable = e => {
-        if (e.data.size > 0 && ws && ws.readyState === WebSocket.OPEN) {
-          ws.send(e.data);
-        }
-      };
+      try {
+        // 1. Get audio stream
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
 
-      mediaRecorder.onstop = () => {
-        status.textContent = "Upload complete. Processing...";
-        // Do not close ws here — let server close it after sending CID
-      };
+        // 2. Create MediaRecorder
+        mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
 
-      ws.onmessage = (event) => {
-        const data = JSON.parse(event.data);
-        if (data.status === "complete" && data.cid) {
-          status.innerHTML = `
-            ✅ Uploaded to IPFS:<br>
-            <a href="${data.url}" target="_blank">${data.cid}</a>
-          `;
-          ws.close(); // Now it's safe to close it
-        }
-      };
+        // 3. Setup WebSocket
+        ws = new WebSocket(`wss://${window.location.host}/ws-record`);
 
-      ws.onerror = (e) => {
-        console.error("WebSocket error:", e);
-        status.textContent = "❌ WebSocket error";
-      };
+        ws.onopen = () => {
+          status.textContent = "Recording and streaming...";
+          mediaRecorder.start(1000); // Collect 1s chunks
+          isRecording = true;
+          stopBtn.disabled = false;
+        };
 
-      document.getElementById("startBtn").disabled = true;
-      document.getElementById("stopBtn").disabled = false;
+        // 4. Stream data chunks to server
+        mediaRecorder.ondataavailable = e => {
+          if (e.data.size > 0 && ws && ws.readyState === WebSocket.OPEN) {
+            ws.send(e.data);
+          }
+        };
+
+        // 5. When recording stops, update UI
+        mediaRecorder.onstop = () => {
+          // Avoid duplicate status messages
+          if (status.textContent !== "✅ Uploaded to IPFS") {
+            status.textContent = "Upload complete. Processing...";
+          }
+          isRecording = false;
+        };
+
+        // 5.1 Error handling for MediaRecorder
+        mediaRecorder.onerror = (e) => {
+          console.error("MediaRecorder error:", e);
+          status.textContent = "❌ Recording error.";
+          if (ws && ws.readyState === WebSocket.OPEN) {
+            ws.close();
+          }
+        };
+
+        // 6. Handle final IPFS response from server
+        ws.onmessage = (event) => {
+          const data = JSON.parse(event.data);
+          if (data.status === "complete" && data.cid) {
+            status.innerHTML = `
+              ✅ Uploaded to IPFS:<br>
+              <a href="${data.url}" target="_blank">${data.cid}</a>
+            `;
+            ws.close(); // Server is done, safe to close
+          }
+        };
+
+        // 7. Catch WebSocket errors
+        ws.onerror = (e) => {
+          console.error("WebSocket error:", e);
+          status.textContent = "❌ WebSocket error";
+          stopBtn.disabled = true;
+        };
+
+      } catch (err) {
+        console.error("Recording setup failed:", err);
+        status.textContent = "❌ Microphone access denied or setup failed.";
+        startBtn.disabled = false;
+      }
     };
 
+
     document.getElementById("stopBtn").onclick = () => {
-      
-      document.getElementById("stopBtn").disabled = true;
+      const stopBtn = document.getElementById("stopBtn");
+      const status = document.getElementById("status");
 
-      // 🔁 Let server know recording is done
-      // Wait for the final dataavailable event
-      mediaRecorder.requestData(); // 🔁 Flush final chunk
+      stopBtn.disabled = true;
 
-      // Delay sending "done" to ensure last chunk arrives first
+      // 8. Flush final chunk and give time to send before signaling done
+      mediaRecorder.requestData(); // forces one last ondataavailable
       setTimeout(() => {
         mediaRecorder.stop();
         if (ws && ws.readyState === WebSocket.OPEN) {
           ws.send(JSON.stringify({ done: true }));
         }
-        document.getElementById("status").textContent = "Upload complete. Processing...";
+
+        status.textContent = "Upload complete. Processing...";
       }, 300); // 300ms ensures flush completes
     };
   </script>
