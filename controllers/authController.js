@@ -29,17 +29,17 @@ exports.login = async (req, res) => {
     const [rows] = await db.execute("SELECT * FROM users WHERE email = ?", [email]);
     const user = rows[0];
 
-    if (!user || !user.password) {
+    if (!user || !user.password_hash) {
       return res.render("frontend/login", { error: "Invalid email or password." });
     }
 
-    const match = await bcrypt.compare(password, user.password);
+    const match = await bcrypt.compare(password, user.password_hash);
     if (!match) {
       return res.render("frontend/login", { error: "Invalid email or password." });
     }
 
     req.session.user = { id: user.id, username: user.username };
-    return res.redirect("/record"); // Eventually reroute to dashboard
+    return res.redirect("/record");
 
   } catch (err) {
     console.error("❌ Login error:", err);
