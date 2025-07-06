@@ -10,7 +10,9 @@ const { handleWebSocket } = require("./controllers/wsController");
 
 const authRoutes = require("./routes/authRoutes");
 const adminRoutes = require("./routes/adminRoutes");
+const dashboardRoutes = require("./routes/dashboardRoutes");
 const uploadRoutes = require("./routes/uploadRoutes");
+
 
 const app = express();
 const server = http.createServer(app);
@@ -43,6 +45,7 @@ app.use(sessionMiddleware);
 // Route middleware
 app.use("/", authRoutes);
 app.use("/admin", adminRoutes);
+app.use("/", dashboardRoutes);
 app.use("/", uploadRoutes);
 
 // Gate to record page

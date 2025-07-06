@@ -39,7 +39,7 @@ exports.login = async (req, res) => {
     }
 
     req.session.user = { id: user.id, username: user.username };
-    return res.redirect("/record");
+    return res.redirect("/dashboard");
 
   } catch (err) {
     console.error("❌ Login error:", err);
