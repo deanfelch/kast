@@ -94,6 +94,12 @@ exports.handleWebSocket = (wss) => {
 
     ws.on("close", () => {
       clearTimeout(timeout);
+
+      if (!cleanFinish && writeStream.writable) {
+        console.warn(`⚠️ Client disconnected before finish: ${id}`);
+        console.warn(`⚠️ Forcing end of stream: ${filePath}`);
+        writeStream.end(); // finalize file even if interrupted
+      }
     });
 
     ws.on("error", (err) => {
