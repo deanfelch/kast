@@ -17,63 +17,52 @@
   </div>
 
   <script>
-    let mediaRecorder;
-    let ws;
+  let mediaRecorder;
+  let ws;
 
-    document.getElementById("startBtn").onclick = async () => {
-      const status = document.getElementById("status");
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      mediaRecorder = new MediaRecorder(stream);
-      ws = new WebSocket(`wss://${window.location.host}/ws-record`);
+  document.getElementById("startBtn").onclick = async () => {
+    const status = document.getElementById("status");
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    mediaRecorder = new MediaRecorder(stream);
+    ws = new WebSocket(`wss://${window.location.host}/ws-record`);
 
-      ws.onopen = () => {
-        status.textContent = "Recording and streaming...";
-        mediaRecorder.start(1000); // 1s chunks
-      };
-
-      mediaRecorder.ondataavailable = e => {
-        if (e.data.size > 0 && ws.readyState === WebSocket.OPEN) {
-          ws.send(e.data);
-        }
-      };
-
-      mediaRecorder.onstop = () => {
-        ws.close();
-        status.textContent = "Upload complete. Processing...";
-
-        let attempts = 0;
-        const maxAttempts = 6; // try up to 12s
-        const pollInterval = setInterval(async () => {
-          attempts++;
-          try {
-            const res = await fetch("/latest-cid");
-            if (res.ok) {
-              const data = await res.json();
-              if (data.cid) {
-                clearInterval(pollInterval);
-                status.innerHTML = `
-                  ✅ Uploaded to IPFS:<br>
-                  <a href="https://gateway.pinata.cloud/ipfs/${data.cid}" target="_blank">${data.cid}</a>
-                `;
-              }
-            }
-          } catch (e) {
-            console.warn("Polling error:", e);
-          }
-          if (attempts >= maxAttempts) clearInterval(pollInterval);
-        }, 2000);
-      };
-
-
-
-      document.getElementById("startBtn").disabled = true;
-      document.getElementById("stopBtn").disabled = false;
+    ws.onopen = () => {
+      status.textContent = "Recording and streaming...";
+      mediaRecorder.start(1000); // 1s chunks
     };
 
-    document.getElementById("stopBtn").onclick = () => {
-      mediaRecorder.stop();
-      document.getElementById("stopBtn").disabled = true;
+    mediaRecorder.ondataavailable = e => {
+      if (e.data.size > 0 && ws.readyState === WebSocket.OPEN) {
+        ws.send(e.data);
+      }
     };
-  </script>
+
+    mediaRecorder.onstop = () => {
+      ws.close();
+      status.textContent = "Upload complete. Processing...";
+    };
+
+    // ✅ Listen for messages from the backend after recording is processed
+    ws.onmessage = (event) => {
+      const data = JSON.parse(event.data);
+      if (data.status === "complete") {
+        status.innerHTML = `
+          ✅ Uploaded to IPFS:<br>
+          <a href="${data.url}" target="_blank">${data.cid}</a>
+        `;
+      } else if (data.status === "error") {
+        status.textContent = `❌ Upload failed: ${data.message}`;
+      }
+    };
+
+    document.getElementById("startBtn").disabled = true;
+    document.getElementById("stopBtn").disabled = false;
+  };
+
+  document.getElementById("stopBtn").onclick = () => {
+    mediaRecorder.stop();
+    document.getElementById("stopBtn").disabled = true;
+  };
+</script>
 </body>
 </html>

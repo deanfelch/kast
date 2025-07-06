@@ -25,16 +25,29 @@ exports.handleWebSocket = (wss) => {
             ...form.getHeaders()
           }
         });
+
         const cid = pinataRes.data.IpfsHash;
         const userId = ws.userId || null;
+
         await db.execute("INSERT INTO uploads (cid, filename, user_id) VALUES (?, ?, ?)", [
           cid,
           `${id}.webm`,
           userId
         ]);
+
         console.log("✅ Live recording uploaded:", cid);
+
+        // ✅ Send response back to client
+        ws.send(JSON.stringify({
+          status: "complete",
+          cid,
+          url: `https://gateway.pinata.cloud/ipfs/${cid}`,
+          filename: `${id}.webm`
+        }));
+
       } catch (err) {
         console.error("❌ Live recording upload failed:", err.message);
+        ws.send(JSON.stringify({ status: "error", message: err.message }));
       } finally {
         fs.unlink(filePath, () => {});
       }
