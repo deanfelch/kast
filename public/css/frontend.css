@@ -1,5 +1,14 @@
 /* frontend.css */
 
+audio {
+  height: 30px;
+  max-width: 250px;
+}
+.kast-item {
+  border-bottom: 1px solid #444;
+  padding: 10px 0;
+}
+
 .container {
   background-color: #1e1e1e;
   padding: 2rem;

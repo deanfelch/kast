@@ -9,19 +9,35 @@
 <link rel="stylesheet" href="/css/frontend.css" />
 </head>
 <body class="bg-dark text-light">
-  <div class="login-box text-center">
-    <h1>Kast - Conversation <%= conversationId %></h1>
-    <a href="/record?conversationId=<%= conversationId %>" class="btn btn-primary">
+  <div class="container py-5">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+      <h2 class="mb-0">🎧 Conversation <%= conversationId %></h2>
+      <a href="/record?conversationId=<%= conversationId %>" class="btn btn-primary">
         ➕ New Recording
-    </a>
-    <ul>
-    <% kasts.forEach(kast => { %>
-        <li>
-        <audio controls src="https://gateway.pinata.cloud/ipfs/<%= kast.cid %>"></audio>
-        <small><%= new Date(kast.uploaded_at).toLocaleString() %></small>
-        </li>
-    <% }) %>
-    </ul>
+      </a>
+    </div>
+
+    <% if (kasts.length === 0) { %>
+      <div class="alert alert-secondary text-center">
+        No recordings yet. Click “New Recording” to add one.
+      </div>
+    <% } else { %>
+      <div class="list-group bg-dark">
+        <% kasts.forEach(kast => { %>
+          <div class="kast-item d-flex justify-content-between align-items-center">
+            <div>
+              <small class="text-muted">
+                <%= new Date(kast.uploaded_at.replace(" ", "T")).toLocaleString() %>
+              </small>
+            </div>
+            <audio controls>
+              <source src="https://gateway.pinata.cloud/ipfs/<%= kast.cid %>" type="audio/webm">
+              Your browser does not support the audio tag.
+            </audio>
+          </div>
+        <% }) %>
+      </div>
+    <% } %>
   </div>
 </body>
 </html>
