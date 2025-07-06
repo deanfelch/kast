@@ -17,51 +17,55 @@
   </div>
 
   <script>
-  let mediaRecorder;
-  let ws;
+    let mediaRecorder;
+    let ws;
 
-  document.getElementById("startBtn").onclick = async () => {
-    const status = document.getElementById("status");
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    mediaRecorder = new MediaRecorder(stream);
-    ws = new WebSocket(`wss://${window.location.host}/ws-record`);
+    document.getElementById("startBtn").onclick = async () => {
+      const status = document.getElementById("status");
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      mediaRecorder = new MediaRecorder(stream);
+      ws = new WebSocket(`wss://${window.location.host}/ws-record`);
 
-    ws.onopen = () => {
-      status.textContent = "Recording and streaming...";
-      mediaRecorder.start(1000); // 1s chunks
+      ws.onopen = () => {
+        status.textContent = "Recording and streaming...";
+        mediaRecorder.start(1000);
+      };
+
+      mediaRecorder.ondataavailable = e => {
+        if (e.data.size > 0 && ws.readyState === WebSocket.OPEN) {
+          ws.send(e.data);
+        }
+      };
+
+      mediaRecorder.onstop = () => {
+        status.textContent = "Upload complete. Processing...";
+        // Do not close ws here — let server close it after sending CID
+      };
+
+      ws.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+        if (data.status === "complete" && data.cid) {
+          status.innerHTML = `
+            ✅ Uploaded to IPFS:<br>
+            <a href="${data.url}" target="_blank">${data.cid}</a>
+          `;
+          ws.close(); // Now it's safe to close it
+        }
+      };
+
+      ws.onerror = (e) => {
+        console.error("WebSocket error:", e);
+        status.textContent = "❌ WebSocket error";
+      };
+
+      document.getElementById("startBtn").disabled = true;
+      document.getElementById("stopBtn").disabled = false;
     };
 
-    mediaRecorder.ondataavailable = e => {
-      if (e.data.size > 0 && ws.readyState === WebSocket.OPEN) {
-        ws.send(e.data);
-      }
-    };
-
-    ws.onmessage = (event) => {
-      const data = JSON.parse(event.data);
-      if (data.status === "complete" && data.cid) {
-        status.innerHTML = `
-          ✅ Uploaded to IPFS:<br>
-          <a href="${data.url}" target="_blank">${data.cid}</a>
-        `;
-        ws.close();
-      }
-    };
-
-    mediaRecorder.onstop = () => {
-      mediaRecorder.stream.getTracks().forEach(track => track.stop());
-      status.textContent = "Upload complete. Processing...";
+    document.getElementById("stopBtn").onclick = () => {
+      mediaRecorder.stop();
       document.getElementById("stopBtn").disabled = true;
     };
-
-    document.getElementById("startBtn").disabled = true;
-    document.getElementById("stopBtn").disabled = false;
-  };
-
-  document.getElementById("stopBtn").onclick = () => {
-    mediaRecorder.stop();
-    document.getElementById("stopBtn").disabled = true;
-  };
-</script>
+  </script>
 </body>
 </html>
