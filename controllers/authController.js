@@ -22,16 +22,17 @@ exports.register = async (req, res) => {
 
 exports.login = async (req, res) => {
   try {
+    const { email, password } = req.body;
     const [rows] = await db.execute("SELECT * FROM users WHERE email = ?", [email]);
     const user = rows[0];
 
     if (!user || !user.password) {
-      return res.render("frontend/login-user", { error: "Invalid email or password." });
+      return res.render("frontend/login", { error: "Invalid email or password." });
     }
 
     const match = await bcrypt.compare(password, user.password);
     if (!match) {
-      return res.render("frontend/login-user", { error: "Invalid email or password." });
+      return res.render("frontend/login", { error: "Invalid email or password." });
     }
 
     req.session.user = { id: user.id, username: user.username };
@@ -39,7 +40,7 @@ exports.login = async (req, res) => {
 
   } catch (err) {
     console.error("❌ Login error:", err);
-    return res.render("frontend/login-user", { error: "An unexpected error occurred." });
+    return res.render("frontend/login", { error: "An unexpected error occurred." });
   }
 };
 
