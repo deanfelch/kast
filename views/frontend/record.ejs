@@ -32,7 +32,7 @@
       };
 
       mediaRecorder.ondataavailable = e => {
-        if (e.data.size > 0 && ws.readyState === WebSocket.OPEN) {
+        if (e.data.size > 0 && ws && ws.readyState === WebSocket.OPEN) {
           ws.send(e.data);
         }
       };
@@ -67,11 +67,16 @@
       document.getElementById("stopBtn").disabled = true;
 
       // 🔁 Let server know recording is done
-      if (ws && ws.readyState === WebSocket.OPEN) {
-        ws.send(JSON.stringify({ done: true }));
-      }
+      // Wait for the final dataavailable event
+      mediaRecorder.requestData(); // 🔁 Flush final chunk
 
-      document.getElementById("status").textContent = "Upload complete. Processing...";
+      // Delay sending "done" to ensure last chunk arrives first
+      setTimeout(() => {
+        if (ws && ws.readyState === WebSocket.OPEN) {
+          ws.send(JSON.stringify({ done: true }));
+        }
+        document.getElementById("status").textContent = "Upload complete. Processing...";
+      }, 300); // 300ms ensures flush completes
     };
   </script>
 </body>

@@ -57,7 +57,6 @@ exports.handleWebSocket = (wss) => {
             cid,
             url: `https://gateway.pinata.cloud/ipfs/${cid}`
           }));
-          console.log("📤 Sent CID to client:", cid);
           ws.close();
         } else {
           console.warn("⚠️ Cannot send CID: WebSocket already closed");
