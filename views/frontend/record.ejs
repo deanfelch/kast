@@ -65,6 +65,13 @@
     document.getElementById("stopBtn").onclick = () => {
       mediaRecorder.stop();
       document.getElementById("stopBtn").disabled = true;
+
+      // 🔁 Let server know recording is done
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ done: true }));
+      }
+
+      document.getElementById("status").textContent = "Upload complete. Processing...";
     };
   </script>
 </body>

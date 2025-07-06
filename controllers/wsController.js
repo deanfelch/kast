@@ -13,11 +13,17 @@ exports.handleWebSocket = (wss) => {
     const writeStream = fs.createWriteStream(filePath);
 
     ws.on("message", (chunk) => {
-      writeStream.write(chunk);
-    });
-
-    ws.on("close", () => {
-      writeStream.end(); // This will trigger the "finish" event
+      // 🧠 Check if it's a JSON "done" signal
+      try {
+        const signal = JSON.parse(chunk.toString());
+        if (signal.done) {
+          writeStream.end(); // trigger upload
+          return;
+        }
+      } catch (e) {
+        // Not JSON? Must be binary chunk
+        writeStream.write(chunk);
+      }
     });
 
     writeStream.on("finish", async () => {
