@@ -63,7 +63,7 @@
     };
 
     document.getElementById("stopBtn").onclick = () => {
-      mediaRecorder.stop();
+      
       document.getElementById("stopBtn").disabled = true;
 
       // 🔁 Let server know recording is done
@@ -72,6 +72,7 @@
 
       // Delay sending "done" to ensure last chunk arrives first
       setTimeout(() => {
+        mediaRecorder.stop();
         if (ws && ws.readyState === WebSocket.OPEN) {
           ws.send(JSON.stringify({ done: true }));
         }
