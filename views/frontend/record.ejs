@@ -22,6 +22,7 @@
     let mediaRecorder;
     let ws;
     let isRecording = false;
+    let readyToSend = false; // ✅ wait until server ACKs
 
     document.getElementById("startBtn").onclick = async () => {
       const status = document.getElementById("status");
@@ -34,32 +35,49 @@
       status.textContent = "Initializing...";
 
       try {
-        // 1. Get audio stream
+        // Get audio stream
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
 
-        // 2. Create MediaRecorder
-        mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
+        // Create MediaRecorder
+        mediaRecorder = new MediaRecorder(stream);
 
-        // 3. Setup WebSocket
+        // Setup WebSocket
         ws = new WebSocket(`wss://${window.location.host}/ws-record`);
 
         ws.onopen = () => {
           ws.send(JSON.stringify({ conversationId }));
-          
-          status.textContent = "Recording and streaming...";
-          mediaRecorder.start(1000); // Collect 1s chunks
-          isRecording = true;
-          stopBtn.disabled = false;
+          status.textContent = "Waiting for server...";
         };
 
-        // 4. Stream data chunks to server
+        // Handle final IPFS response from server
+        ws.onmessage = (event) => {
+          const data = JSON.parse(event.data);
+
+          if (data.status === "ready") {
+            // ✅ Server acknowledged conversationId
+            readyToSend = true;
+            mediaRecorder.start(1000);
+            status.textContent = "Recording and streaming...";
+            stopBtn.disabled = false;
+          }
+
+          if (data.status === "complete" && data.cid) {
+            status.innerHTML = `
+              ✅ Uploaded to IPFS:<br>
+              <a href="${data.url}" target="_blank">${data.cid}</a>
+            `;
+            ws.close();
+          }
+        };
+
+        // Stream data chunks to server
         mediaRecorder.ondataavailable = e => {
           if (e.data.size > 0 && ws && ws.readyState === WebSocket.OPEN) {
             ws.send(e.data);
           }
         };
 
-        // 5. When recording stops, update UI
+        // When recording stops, update UI
         mediaRecorder.onstop = () => {
           // Avoid duplicate status messages
           if (status.textContent !== "✅ Uploaded to IPFS") {
@@ -77,19 +95,9 @@
           }
         };
 
-        // 6. Handle final IPFS response from server
-        ws.onmessage = (event) => {
-          const data = JSON.parse(event.data);
-          if (data.status === "complete" && data.cid) {
-            status.innerHTML = `
-              ✅ Uploaded to IPFS:<br>
-              <a href="${data.url}" target="_blank">${data.cid}</a>
-            `;
-            ws.close(); // Server is done, safe to close
-          }
-        };
+        
 
-        // 7. Catch WebSocket errors
+        // Catch WebSocket errors
         ws.onerror = (e) => {
           console.error("WebSocket error:", e);
           status.textContent = "❌ WebSocket error";

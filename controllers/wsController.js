@@ -33,7 +33,13 @@ exports.handleWebSocket = (wss) => {
         const signal = JSON.parse(chunk.toString());
 
         if (signal.conversationId) {
-          conversationId = parseInt(msg.conversationId); // 💾 Capture conversation ID
+          conversationId = parseInt(signal.conversationId);
+          console.log(`📌 Received conversationId: ${conversationId}`);
+
+          // ✅ Send confirmation to client
+          if (ws.readyState === ws.OPEN) {
+            ws.send(JSON.stringify({ status: "ready" }));
+          }
           return;
         }
 
