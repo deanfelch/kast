@@ -16,7 +16,7 @@ const app = express();
 const server = http.createServer(app);
 
 // Create WebSocket server
-const wss = new WebSocket.Server({ server });
+const wss = new WebSocket.Server({ noServer: true }); // ✅ disables auto-upgrade
 
 // Wrap session middleware for WS
 const wrap = (middleware) => (req, res, next) => middleware(req, {}, next);
