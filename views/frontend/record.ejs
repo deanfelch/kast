@@ -37,16 +37,21 @@
       }
     };
 
-    mediaRecorder.onstop = () => {
-      ws.close();
-      status.textContent = "Upload complete. Processing...";
+    ws.onmessage = (event) => {
+      const data = JSON.parse(event.data);
+      if (data.status === "complete" && data.cid) {
+        status.innerHTML = `
+          ✅ Uploaded to IPFS:<br>
+          <a href="${data.url}" target="_blank">${data.cid}</a>
+        `;
+        ws.close(); // ✅ Now it's safe to close the WebSocket
+      }
     };
-
+    
     // ✅ Listen for messages from the backend after recording is processed
     ws.onmessage = (event) => {
       const data = JSON.parse(event.data);
       if (data.status === "complete") {
-        console.log("Received message:", msg);
         status.innerHTML = `
           ✅ Uploaded to IPFS:<br>
           <a href="${data.url}" target="_blank">${data.cid}</a>
