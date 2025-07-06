@@ -44,21 +44,14 @@
           ✅ Uploaded to IPFS:<br>
           <a href="${data.url}" target="_blank">${data.cid}</a>
         `;
-        ws.close(); // ✅ Now it's safe to close the WebSocket
+        ws.close();
       }
     };
-    
-    // ✅ Listen for messages from the backend after recording is processed
-    ws.onmessage = (event) => {
-      const data = JSON.parse(event.data);
-      if (data.status === "complete") {
-        status.innerHTML = `
-          ✅ Uploaded to IPFS:<br>
-          <a href="${data.url}" target="_blank">${data.cid}</a>
-        `;
-      } else if (data.status === "error") {
-        status.textContent = `❌ Upload failed: ${data.message}`;
-      }
+
+    mediaRecorder.onstop = () => {
+      mediaRecorder.stream.getTracks().forEach(track => track.stop());
+      status.textContent = "Upload complete. Processing...";
+      document.getElementById("stopBtn").disabled = true;
     };
 
     document.getElementById("startBtn").disabled = true;
