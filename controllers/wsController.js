@@ -13,7 +13,13 @@ exports.handleWebSocket = (wss) => {
     const writeStream = fs.createWriteStream(filePath);
     const startTime = Date.now();
 
+    // ✅ Get userId from session or token
+    const userId = req.session?.user?.id || null;
+    ws.userId = userId;
+
     console.log(`🎧 New recording session started: ${id}`);
+
+    let cleanFinish = false;
 
     const timeout = setTimeout(() => {
       console.warn(`⚠️ Timeout: no 'done' signal received for ${id}`);
@@ -26,6 +32,7 @@ exports.handleWebSocket = (wss) => {
         const signal = JSON.parse(chunk.toString());
         if (signal.done) {
           clearTimeout(timeout);
+          cleanFinish = true;
           writeStream.end(); // trigger upload
           return;
         }
@@ -57,14 +64,15 @@ exports.handleWebSocket = (wss) => {
         const userId = ws.userId || null;
 
         // Log in DB
-        await db.execute("INSERT INTO uploads (cid, filename, user_id) VALUES (?, ?, ?)", [
+        await db.execute("INSERT INTO uploads (cid, filename, user_id, interrupted) VALUES (?, ?, ?, ?)", [
           cid,
           `${id}.webm`,
-          userId
+          userId,
+          !cleanFinish
         ]);
 
         const url = `https://gateway.pinata.cloud/ipfs/${cid}`;
-        console.log(`✅ Recording uploaded: ${cid} (${Math.round((Date.now() - startTime) / 1000)}s)`);
+        console.log(`✅ Recording uploaded: ${cid} (${Math.round((Date.now() - startTime) / 1000)}s) (${cleanFinish ? "complete" : "interrupted"})`);
 
         // ✅ Send CID to client IF socket is still open
         if (ws.readyState === ws.OPEN) {
