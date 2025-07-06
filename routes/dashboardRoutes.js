@@ -18,7 +18,7 @@ router.get("/dashboard", ensureLoggedIn, async (req, res) => {
     LEFT JOIN uploads u ON c.id = u.conversation_id
     WHERE c.user_id = ?
     GROUP BY c.id
-    ORDER BY c.uploaded_at DESC
+    ORDER BY c.created_at DESC
   `, [userId]);
 
   res.render("frontend/dashboard", {
@@ -35,7 +35,7 @@ router.get("/conversation/:id", ensureLoggedIn, async (req, res) => {
   const [kasts] = await db.execute(`
     SELECT * FROM uploads
     WHERE conversation_id = ? AND user_id = ?
-    ORDER BY created_at ASC
+    ORDER BY uploaded_at ASC
   `, [conversationId, userId]);
 
   res.render("frontend/conversation", {
