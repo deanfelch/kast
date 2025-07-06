@@ -16,7 +16,10 @@ exports.register = async (req, res) => {
     return res.render("frontend/register", { error: "Email already registered" });
   }
   const hash = await bcrypt.hash(password, 10);
-  await db.execute("INSERT INTO users (username, email, password) VALUES (?, ?, ?)", [username, email, hash]);
+  await db.execute(
+    "INSERT INTO users (username, email, password_hash) VALUES (?, ?, ?)",
+    [username, email, hash]
+  );
   res.redirect("/login");
 };
 
