@@ -10,8 +10,10 @@
 </head>
 <body class="bg-dark text-light">
   <div class="login-box text-center">
-    <h1>Kast - View Conversation</h1>
-    <h2>Conversation <%= conversationId %></h2>
+    <h1>Kast - Conversation <%= conversationId %></h1>
+    <a href="/record?conversationId=<%= conversationId %>" class="btn btn-primary">
+        ➕ New Recording
+    </a>
     <ul>
     <% kasts.forEach(kast => { %>
         <li>

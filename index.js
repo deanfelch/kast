@@ -51,12 +51,18 @@ app.use("/", uploadRoutes);
 // Gate to record page
 app.get("/record", (req, res) => {
   if (!req.session.user) return res.redirect("/login");
-  res.render("frontend/record", { user: req.session.user });
+
+  const conversationId = req.query.conversationId || null;
+
+   res.render("frontend/record", {
+    user: req.session.user,
+    conversationId
+  });
 });
 
 // Redirect root
 app.get("/", (req, res) => {
-  if (req.session.user) return res.redirect("/record");
+  if (req.session.user) return res.redirect("/dashboard");
   res.redirect("/login");
 });
 
