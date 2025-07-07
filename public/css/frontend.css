@@ -1,8 +1,21 @@
-/* frontend.css */
-
+.recording-row {
+  border-bottom: 1px solid #444;
+  padding: 1rem 0;
+}
 audio {
-  height: 30px;
-  max-width: 250px;
+  height: 32px;
+  max-width: 100%;
+}
+.recording-list {
+  max-width: 900px;
+  margin: 0 auto;
+}
+.conversation-header {
+  max-width: 900px;
+  margin: 0 auto 2rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 .kast-item {
   border-bottom: 1px solid #444;
