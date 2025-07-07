@@ -23,101 +23,120 @@
       </div>
     <% } else { %>
         <% kasts.forEach(kast => { %>
-        <div class="recording-row d-flex flex-column flex-md-row justify-content-between align-items-md-center">
-            <div class="mb-2 mb-md-0">
-                <strong><%= new Date(kast.uploaded_at).toLocaleDateString() %> @ <%= new Date(kast.uploaded_at).toLocaleTimeString() %></strong> — 
-                <div class="kast-title-container d-flex align-items-center gap-2">
-                    <span
-                        class="kast-title"
-                        data-id="<%= kast.id %>"
-                        contenteditable="false"
-                        title="Click pencil to edit title"
-                    >
-                        <%= kast.title || "Untitled Kast" %>
-                    </span>
-
-                    <button class="edit-icon btn btn-sm btn-outline-light" data-id="<%= kast.id %>">
-                        ✏️
-                    </button>
-
-                    <span class="save-confirmation text-success fw-bold" style="opacity: 0;">✅</span>
-
-                    <span class="kast-username ms-2 text-muted small">
-                        by <%= kast.username || "Unknown" %>
-                    </span>
-                </div>
+        <div class="kast-item mb-4 p-3 bg-secondary bg-opacity-10 rounded">
+            <!-- Top row: Date & Editable Title -->
+            <div class="kast-title-container d-flex align-items-center gap-2">
+                <small class="text-muted me-2">
+                <%= new Date(kast.uploaded_at).toLocaleString() %>
+                </small>
+                <span
+                class="kast-title"
+                data-id="<%= kast.id %>"
+                contenteditable="false"
+                title="Click pencil to edit title"
+                >
+                <%= kast.title || "Untitled Kast" %>
+                </span>
+                <button class="edit-icon btn btn-sm btn-outline-light border-0" data-id="<%= kast.id %>">✏️</button>
+                <span class="save-confirmation text-success fw-bold" style="opacity: 0;">✅</span>
             </div>
-            <div class="mb-2 mb-md-0">
-              <span class="kast-username">by <%= kast.username || "Unknown" %></span>
+
+            <!-- Attribution -->
+            <div class="kast-username text-light-emphasis small mt-1 ms-1">
+                by <%= kast.username || "Unknown" %>
             </div>
-            <div>
-              <audio controls preload="metadata" class="mt-2 mt-md-0" style="height: 32px; max-width: 300px;">
-                <source src="https://gateway.pinata.cloud/ipfs/<%= kast.cid %>" type="audio/webm">
-                Your browser does not support the audio tag.
-              </audio>
+
+            <!-- Audio Player -->
+            <div class="kast-audio mt-2">
+                <audio controls src="https://gateway.pinata.cloud/ipfs/<%= kast.cid %>" style="width: 100%"></audio>
             </div>
-          </div>
+            </div>
+
         <% }) %>
     <% } %>
     </div>
   </div>
 
   <script>
-    document.querySelectorAll(".edit-icon").forEach(button => {
-        button.addEventListener("click", () => {
-        const id = button.dataset.id;
-        const container = button.closest(".kast-title-container");
-        const titleEl = container.querySelector(".kast-title");
-        const confirmation = container.querySelector(".save-confirmation");
+  document.querySelectorAll(".edit-icon").forEach(button => {
+    button.addEventListener("click", () => toggleEdit(button));
+  });
 
-        const isEditing = titleEl.isContentEditable;
+  function toggleEdit(button) {
+    const id = button.dataset.id;
+    const container = button.closest(".kast-item");
+    const titleEl = container.querySelector(".kast-title");
+    const confirmation = container.querySelector(".save-confirmation");
 
-        if (!isEditing) {
-            // Enable editing
-            titleEl.contentEditable = "true";
-            titleEl.classList.add("editing");
-            titleEl.focus();
-            placeCursorAtEnd(titleEl);
-            button.textContent = "💾"; // switch to save icon
-        } else {
-            // Save and disable editing
-            const newTitle = titleEl.innerText.trim();
-            titleEl.contentEditable = "false";
-            titleEl.classList.remove("editing");
-            button.textContent = "✏️";
+    const isEditing = titleEl.isContentEditable;
 
-            // Save to server
-            fetch(`/kasts/${id}/title`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ title: newTitle })
-            })
-            .then(res => res.json())
-            .then(data => {
-            if (data.success) {
-                confirmation.classList.add("show");
-                setTimeout(() => confirmation.classList.remove("show"), 1200);
-            } else {
-                alert("⚠️ Failed to save title.");
-            }
-            })
-            .catch(err => {
-            console.error("Save error:", err);
-            alert("❌ Could not save title.");
-            });
+    if (!isEditing) {
+      // Start editing
+      titleEl.contentEditable = "true";
+      titleEl.classList.add("editing");
+      titleEl.focus();
+      placeCursorAtEnd(titleEl);
+      button.textContent = "💾";
+
+      // Save on Enter key
+      titleEl.addEventListener("keydown", function onEnter(e) {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          titleEl.removeEventListener("keydown", onEnter);
+          saveTitle(id, titleEl, button, confirmation);
         }
-        });
-    });
+      });
 
-    function placeCursorAtEnd(el) {
-        const range = document.createRange();
-        const sel = window.getSelection();
-        range.selectNodeContents(el);
-        range.collapse(false);
-        sel.removeAllRanges();
-        sel.addRange(range);
+      // Save on blur
+      titleEl.addEventListener("blur", function onBlur() {
+        titleEl.removeEventListener("blur", onBlur);
+        saveTitle(id, titleEl, button, confirmation);
+      });
+
+    } else {
+      // Manual save via button
+      saveTitle(id, titleEl, button, confirmation);
     }
-    </script>
+  }
+
+  function saveTitle(id, titleEl, button, confirmation) {
+    const newTitle = titleEl.innerText.trim();
+
+    // Disable editing
+    titleEl.contentEditable = "false";
+    titleEl.classList.remove("editing");
+    button.textContent = "✏️";
+
+    fetch(`/kasts/${id}/title`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ title: newTitle })
+    })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          confirmation.classList.add("show");
+          setTimeout(() => confirmation.classList.remove("show"), 1200);
+        } else {
+          alert("⚠️ Failed to update title.");
+        }
+      })
+      .catch(err => {
+        console.error("Save error:", err);
+        alert("❌ Could not save title.");
+      });
+  }
+
+  function placeCursorAtEnd(el) {
+    const range = document.createRange();
+    const sel = window.getSelection();
+    range.selectNodeContents(el);
+    range.collapse(false);
+    sel.removeAllRanges();
+    sel.addRange(range);
+  }
+</script>
+
 
 </body>
 </html>
