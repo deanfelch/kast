@@ -33,10 +33,19 @@ router.get("/conversation/:id", ensureLoggedIn, async (req, res) => {
   const userId = req.session.user.id;
 
   const [kasts] = await db.execute(`
-    SELECT * FROM uploads
-    WHERE conversation_id = ? AND user_id = ?
-    ORDER BY uploaded_at ASC
-  `, [conversationId, userId]);
+    SELECT 
+        u.id,
+        u.cid,
+        u.title,
+        u.filename,
+        u.uploaded_at,
+        u.user_id,
+        us.username
+    FROM uploads u
+    LEFT JOIN users us ON u.user_id = us.id
+    WHERE u.conversation_id = ? AND u.user_id = ?
+    ORDER BY u.uploaded_at ASC
+    `, [conversationId, req.session.user.id]);
 
   res.render("frontend/conversation", {
     user: req.session.user,

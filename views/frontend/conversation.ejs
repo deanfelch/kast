@@ -12,9 +12,9 @@
   <div class="container py-5">
     <div class="conversation-header">
       <h2 class="mb-0">🎧 Conversation <%= conversationId %></h2>
-      <a href="/record?conversationId=<%= conversationId %>" class="btn btn-primary">
+      <h2><a href="/record?conversationId=<%= conversationId %>" class="btn btn-primary">
         ➕ New Recording
-      </a>
+      </a></h2>
     </div>
     <div class="recording-list">
     <% if (kasts.length === 0) { %>
@@ -25,13 +25,10 @@
         <% kasts.forEach(kast => { %>
         <div class="recording-row d-flex flex-column flex-md-row justify-content-between align-items-md-center">
             <div class="mb-2 mb-md-0">
-              <div><strong>Kast ID:</strong> <%= kast.id %></div>
-              <div><small class="text-muted">
-                <%= new Date(kast.uploaded_at).toLocaleString() %>
-            </small></div>
+              <strong><%= new Date(kast.uploaded_at).toLocaleDateString() %> @ <%= new Date(kast.uploaded_at).toLocaleTimeString() %></strong> — <span class="kast-title" contenteditable="true" data-id="<%= kast.id %>"><%= kast.title || "Untitled Kast" %></span><span class="text-muted ms-2">by <%= kast.username || "Unknown" %></span>
             </div>
             <div>
-              <audio controls preload="metadata">
+              <audio controls preload="metadata" class="mt-2 mt-md-0" style="height: 32px; max-width: 300px;">
                 <source src="https://gateway.pinata.cloud/ipfs/<%= kast.cid %>" type="audio/webm">
                 Your browser does not support the audio tag.
               </audio>
@@ -41,5 +38,42 @@
     <% } %>
     </div>
   </div>
+
+  <script>
+  document.querySelectorAll(".kast-title").forEach(titleEl => {
+    const kastId = titleEl.dataset.id;
+
+    // Save on blur
+    titleEl.addEventListener("blur", () => {
+      saveTitle(kastId, titleEl.innerText.trim());
+    });
+
+    // Save on Enter key
+    titleEl.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        e.preventDefault(); // avoid adding newline
+        titleEl.blur();     // triggers blur → saves
+      }
+    });
+  });
+
+  async function saveTitle(id, newTitle) {
+    try {
+      const res = await fetch(`/kasts/${id}/title`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title: newTitle })
+      });
+
+      const data = await res.json();
+      if (!data.success) {
+        alert("⚠️ Failed to update title.");
+      }
+    } catch (err) {
+      console.error("Error saving title:", err);
+      alert("❌ Could not save title.");
+    }
+  }
+</script>
 </body>
 </html>

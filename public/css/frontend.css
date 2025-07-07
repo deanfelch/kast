@@ -17,6 +17,18 @@ audio {
   justify-content: space-between;
   align-items: center;
 }
+.kast-title {
+  white-space: nowrap;
+  overflow: hidden;
+  display: inline-block;
+}
+.kast-title br {
+  display: none;
+}
+.kast-title[contenteditable="true"]:empty:before {
+  content: 'Click to add title';
+  color: #666;
+}
 .kast-item {
   border-bottom: 1px solid #444;
   padding: 10px 0;
