@@ -44,7 +44,7 @@ router.get("/conversation/:id", ensureLoggedIn, async (req, res) => {
     FROM uploads u
     LEFT JOIN users us ON u.user_id = us.id
     WHERE u.conversation_id = ? AND u.user_id = ?
-    ORDER BY u.uploaded_at ASC
+    ORDER BY u.uploaded_at DESC
     `, [conversationId, req.session.user.id]);
 
   res.render("frontend/conversation", {

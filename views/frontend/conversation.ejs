@@ -25,7 +25,18 @@
         <% kasts.forEach(kast => { %>
         <div class="recording-row d-flex flex-column flex-md-row justify-content-between align-items-md-center">
             <div class="mb-2 mb-md-0">
-              <strong><%= new Date(kast.uploaded_at).toLocaleDateString() %> @ <%= new Date(kast.uploaded_at).toLocaleTimeString() %></strong> — <span class="kast-title" contenteditable="true" data-id="<%= kast.id %>"><%= kast.title || "Untitled Kast" %></span><span class="text-muted ms-2">by <%= kast.username || "Unknown" %></span>
+              <strong><%= new Date(kast.uploaded_at).toLocaleDateString() %> @ <%= new Date(kast.uploaded_at).toLocaleTimeString() %></strong> — 
+              <span class="kast-title-container d-inline-block position-relative">
+                <span class="kast-title" contenteditable="true" data-id="<%= kast.id %>">
+                    <%= kast.title || "Untitled Kast" %>
+                </span>
+                <span class="save-confirmation position-absolute top-0 start-100 translate-middle-y ms-2 text-success fw-bold" style="display: none;">
+                    ✅
+                </span>
+                </span>
+            </div>
+            <div class="mb-2 mb-md-0">
+              <span class="kast-username">by <%= kast.username || "Unknown" %></span>
             </div>
             <div>
               <audio controls preload="metadata" class="mt-2 mt-md-0" style="height: 32px; max-width: 300px;">
@@ -40,40 +51,49 @@
   </div>
 
   <script>
-  document.querySelectorAll(".kast-title").forEach(titleEl => {
-    const kastId = titleEl.dataset.id;
+    document.querySelectorAll(".kast-title").forEach(titleEl => {
+        const kastId = titleEl.dataset.id;
 
-    // Save on blur
-    titleEl.addEventListener("blur", () => {
-      saveTitle(kastId, titleEl.innerText.trim());
+        // Save on blur
+        titleEl.addEventListener("blur", () => {
+        saveTitle(kastId, titleEl.innerText.trim(), titleEl);
+        });
+
+        // Save on Enter
+        titleEl.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") {
+            e.preventDefault();
+            titleEl.blur();
+        }
+        });
     });
 
-    // Save on Enter key
-    titleEl.addEventListener("keydown", (e) => {
-      if (e.key === "Enter") {
-        e.preventDefault(); // avoid adding newline
-        titleEl.blur();     // triggers blur → saves
-      }
-    });
-  });
+    async function saveTitle(id, newTitle, el) {
+        try {
+        const res = await fetch(`/kasts/${id}/title`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ title: newTitle })
+        });
 
-  async function saveTitle(id, newTitle) {
-    try {
-      const res = await fetch(`/kasts/${id}/title`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title: newTitle })
-      });
+        const data = await res.json();
+        if (data.success) {
+            const container = el.closest(".kast-title-container");
+            const confirmation = container.querySelector(".save-confirmation");
+            confirmation.classList.add("show");
 
-      const data = await res.json();
-      if (!data.success) {
-        alert("⚠️ Failed to update title.");
-      }
-    } catch (err) {
-      console.error("Error saving title:", err);
-      alert("❌ Could not save title.");
+            // Hide after 1.2 seconds
+            setTimeout(() => {
+            confirmation.classList.remove("show");
+            }, 1200);
+        } else {
+            alert("⚠️ Failed to update title.");
+        }
+        } catch (err) {
+        console.error("Error saving title:", err);
+        alert("❌ Could not save title.");
+        }
     }
-  }
-</script>
+    </script>
 </body>
 </html>

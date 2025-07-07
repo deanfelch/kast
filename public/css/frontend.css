@@ -29,9 +29,23 @@ audio {
   content: 'Click to add title';
   color: #666;
 }
+.save-confirmation {
+  opacity: 0;
+  transition: opacity 0.3s ease-in-out;
+}
+
+.save-confirmation.show {
+  display: inline;
+  opacity: 1;
+}
+
 .kast-item {
   border-bottom: 1px solid #444;
   padding: 10px 0;
+}
+.kast-username {
+  color: #aaa;
+  font-size: 0.9em;
 }
 
 .container {

@@ -3,6 +3,7 @@ const router = express.Router();
 const multer = require("multer");
 const upload = multer();
 const uploader = require("../controllers/uploadController");
+const db = require("../models/db");
 
 router.post("/upload", upload.single("file"), uploader.uploadFile);
 
