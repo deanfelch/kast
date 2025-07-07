@@ -30,12 +30,12 @@ audio {
   color: #666;
 }
 .save-confirmation {
+  display: inline;
   opacity: 0;
   transition: opacity 0.3s ease-in-out;
 }
 
 .save-confirmation.show {
-  display: inline;
   opacity: 1;
 }
 
