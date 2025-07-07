@@ -23,12 +23,12 @@
       </div>
     <% } else { %>
         <% kasts.forEach(kast => { %>
-         <div class="recording-row d-flex flex-column flex-md-row justify-content-between align-items-md-center">
+        <div class="recording-row d-flex flex-column flex-md-row justify-content-between align-items-md-center">
             <div class="mb-2 mb-md-0">
               <div><strong>Kast ID:</strong> <%= kast.id %></div>
               <div><small class="text-muted">
-                <%= new Date(kast.created_at.replace(" ", "T")).toLocaleString() %>
-              </small></div>
+                <%= new Date(kast.uploaded_at).toLocaleString() %>
+            </small></div>
             </div>
             <div>
               <audio controls preload="metadata">
