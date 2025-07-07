@@ -25,15 +25,27 @@
         <% kasts.forEach(kast => { %>
         <div class="recording-row d-flex flex-column flex-md-row justify-content-between align-items-md-center">
             <div class="mb-2 mb-md-0">
-              <strong><%= new Date(kast.uploaded_at).toLocaleDateString() %> @ <%= new Date(kast.uploaded_at).toLocaleTimeString() %></strong> — 
-              <span class="kast-title-container d-inline-block position-relative">
-                <span class="kast-title" contenteditable="true" data-id="<%= kast.id %>">
-                    <%= kast.title || "Untitled Kast" %>
-                </span>
-                <span class="save-confirmation position-absolute top-0 start-100 translate-middle-y ms-2 text-success fw-bold" style="display: none;">
-                    ✅
-                </span>
-                </span>
+                <strong><%= new Date(kast.uploaded_at).toLocaleDateString() %> @ <%= new Date(kast.uploaded_at).toLocaleTimeString() %></strong> — 
+                <div class="kast-title-container d-flex align-items-center gap-2">
+                    <span
+                        class="kast-title"
+                        data-id="<%= kast.id %>"
+                        contenteditable="false"
+                        title="Click pencil to edit title"
+                    >
+                        <%= kast.title || "Untitled Kast" %>
+                    </span>
+
+                    <button class="edit-icon btn btn-sm btn-outline-light" data-id="<%= kast.id %>">
+                        ✏️
+                    </button>
+
+                    <span class="save-confirmation text-success fw-bold" style="opacity: 0;">✅</span>
+
+                    <span class="kast-username ms-2 text-muted small">
+                        by <%= kast.username || "Unknown" %>
+                    </span>
+                </div>
             </div>
             <div class="mb-2 mb-md-0">
               <span class="kast-username">by <%= kast.username || "Unknown" %></span>
@@ -51,49 +63,61 @@
   </div>
 
   <script>
-    document.querySelectorAll(".kast-title").forEach(titleEl => {
-        const kastId = titleEl.dataset.id;
+    document.querySelectorAll(".edit-icon").forEach(button => {
+        button.addEventListener("click", () => {
+        const id = button.dataset.id;
+        const container = button.closest(".kast-title-container");
+        const titleEl = container.querySelector(".kast-title");
+        const confirmation = container.querySelector(".save-confirmation");
 
-        // Save on blur
-        titleEl.addEventListener("blur", () => {
-        saveTitle(kastId, titleEl.innerText.trim(), titleEl);
-        });
+        const isEditing = titleEl.isContentEditable;
 
-        // Save on Enter
-        titleEl.addEventListener("keydown", (e) => {
-        if (e.key === "Enter") {
-            e.preventDefault();
-            titleEl.blur();
+        if (!isEditing) {
+            // Enable editing
+            titleEl.contentEditable = "true";
+            titleEl.classList.add("editing");
+            titleEl.focus();
+            placeCursorAtEnd(titleEl);
+            button.textContent = "💾"; // switch to save icon
+        } else {
+            // Save and disable editing
+            const newTitle = titleEl.innerText.trim();
+            titleEl.contentEditable = "false";
+            titleEl.classList.remove("editing");
+            button.textContent = "✏️";
+
+            // Save to server
+            fetch(`/kasts/${id}/title`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ title: newTitle })
+            })
+            .then(res => res.json())
+            .then(data => {
+            if (data.success) {
+                confirmation.classList.add("show");
+                setTimeout(() => confirmation.classList.remove("show"), 1200);
+            } else {
+                alert("⚠️ Failed to save title.");
+            }
+            })
+            .catch(err => {
+            console.error("Save error:", err);
+            alert("❌ Could not save title.");
+            });
         }
         });
     });
 
-    async function saveTitle(id, newTitle, el) {
-        try {
-        const res = await fetch(`/kasts/${id}/title`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ title: newTitle })
-        });
-
-        const data = await res.json();
-        if (data.success) {
-            const container = el.closest(".kast-title-container");
-            const confirmation = container.querySelector(".save-confirmation");
-            confirmation.classList.add("show");
-
-            // Hide after 1.2 seconds
-            setTimeout(() => {
-            confirmation.classList.remove("show");
-            }, 1200);
-        } else {
-            alert("⚠️ Failed to update title.");
-        }
-        } catch (err) {
-        console.error("Error saving title:", err);
-        alert("❌ Could not save title.");
-        }
+    function placeCursorAtEnd(el) {
+        const range = document.createRange();
+        const sel = window.getSelection();
+        range.selectNodeContents(el);
+        range.collapse(false);
+        sel.removeAllRanges();
+        sel.addRange(range);
     }
     </script>
+
 </body>
 </html>

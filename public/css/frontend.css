@@ -17,27 +17,30 @@ audio {
   justify-content: space-between;
   align-items: center;
 }
+
 .kast-title {
-  white-space: nowrap;
-  overflow: hidden;
-  display: inline-block;
-}
-.kast-title br {
-  display: none;
-}
-.kast-title[contenteditable="true"]:empty:before {
-  content: 'Click to add title';
-  color: #666;
-}
-.save-confirmation {
-  display: inline;
-  opacity: 0;
-  transition: opacity 0.3s ease-in-out;
+  border-bottom: 1px dashed transparent;
+  padding: 2px 4px;
+  min-width: 100px;
 }
 
+.kast-title.editing {
+  border-color: #0d6efd;
+  background-color: #222;
+  cursor: text;
+}
+
+.edit-icon {
+  width: 36px;
+}
+
+.save-confirmation {
+  transition: opacity 0.3s ease-in-out;
+}
 .save-confirmation.show {
   opacity: 1;
 }
+
 
 .kast-item {
   border-bottom: 1px solid #444;
