@@ -18,6 +18,24 @@ audio {
   align-items: center;
 }
 
+.edit-icon {
+  width: 36px;
+  background-color: transparent;
+  border: none !important;
+  box-shadow: none;
+  color: #ccc;
+  font-size: 1rem;
+  padding: 0;
+  margin: 0;
+  cursor: pointer;
+}
+
+.edit-icon:focus,
+.edit-icon:active {
+  outline: none;
+  box-shadow: none;
+}
+
 .kast-title {
   border-bottom: 1px dashed transparent;
   padding: 2px 4px;
@@ -30,17 +48,12 @@ audio {
   cursor: text;
 }
 
-.edit-icon {
-  width: 36px;
-}
-
 .save-confirmation {
   transition: opacity 0.3s ease-in-out;
 }
 .save-confirmation.show {
   opacity: 1;
 }
-
 
 .kast-item {
   border-bottom: 1px solid #444;
