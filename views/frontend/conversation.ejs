@@ -31,20 +31,25 @@
 
                 <!-- Row 2: Title + Edit + Username -->
                 <div class="d-flex justify-content-between align-items-center flex-wrap">
+                    <!-- Left: title and pencil/save -->
                     <div class="d-flex align-items-center flex-grow-1">
-                    <span
-                        class="kast-title me-2"
-                        data-id="<%= kast.id %>"
-                        contenteditable="false"
-                        title="Click pencil to edit title"
-                    >
-                        <%= kast.title || "Untitled Kast" %>
-                    </span>
-                    <button class="edit-icon btn btn-sm btn-outline-light border-0" data-id="<%= kast.id %>">✏️</button>
-                    <span class="save-confirmation text-success fw-bold ms-2" style="opacity: 0;">✅</span>
+                        <div class="d-flex align-items-center kast-title-wrapper">
+                        <span
+                            class="kast-title me-2"
+                            data-id="<%= kast.id %>"
+                            contenteditable="false"
+                            title="Click pencil to edit title"
+                        >
+                            <%= kast.title || "Untitled Kast" %>
+                        </span>
+                        <button class="edit-icon btn btn-sm btn-outline-light border-0" data-id="<%= kast.id %>">✏️</button>
+                        <span class="save-confirmation text-success fw-bold ms-2" style="opacity: 0;">✅</span>
+                        </div>
                     </div>
-                    <div class="kast-username small text-end">
-                    👤 <%= kast.username || "Unknown" %>
+
+                    <!-- Right: username -->
+                    <div class="kast-username small text-end ms-3">
+                        by <%= kast.username || "Unknown" %>
                     </div>
                 </div>
 

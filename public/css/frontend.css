@@ -21,7 +21,12 @@ audio {
 .kast-item {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+}
+
+.kast-title-wrapper {
+  display: flex;
+  align-items: center;
+  flex-wrap: nowrap;
 }
 
 .kast-title {
