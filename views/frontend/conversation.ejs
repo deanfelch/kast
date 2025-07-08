@@ -11,9 +11,9 @@
 <body class="bg-dark text-light">
   <div class="container py-5">
     <div class="conversation-header">
-      <h2 class="mb-0">🎧 Conversation <%= conversationId %></h2>
+      <h2 class="mb-0">Conversation: <%= conversationId %></h2><br>
       <h2><a href="/record?conversationId=<%= conversationId %>" class="btn btn-primary">
-        ➕ New Recording
+        ➕ New Kast
       </a></h2>
     </div>
     <div class="recording-list">
@@ -23,29 +23,35 @@
       </div>
     <% } else { %>
         <% kasts.forEach(kast => { %>
-        <div class="kast-item mb-4 p-3 bg-secondary bg-opacity-10 rounded">
-            <!-- Top row: Date & Editable Title -->
-            <div class="kast-title-container d-flex align-items-center gap-2">
-                <small><%= new Date(kast.uploaded_at).toLocaleString() %></small>
-                <span
-                class="kast-title"
-                data-id="<%= kast.id %>"
-                contenteditable="false"
-                title="Click pencil to edit title"
-                >
-                <%= kast.title || "Untitled Kast" %>
-                </span>
-                <button class="edit-icon btn btn-sm btn-outline-light border-0" data-id="<%= kast.id %>">✏️</button>
-                <span class="save-confirmation text-success fw-bold" style="opacity: 0;">✅</span>
-                <span class="kast-username small mt-1 ms-1">
-                    by <%= kast.username || "Unknown" %>
-                </span>
-            </div>       
+            <div class="kast-item border rounded p-3 mb-4 bg-secondary bg-opacity-10">
+                <!-- Row 1: Date -->
+                <div class="kast-date mb-2 text-light-emphasis small" data-datetime="<%= kast.uploaded_at %>">
+                    <!-- Filled by JS -->
+                </div>
 
-            <!-- Audio Player -->
-            <div class="kast-audio mt-2">
-                <audio controls src="https://gateway.pinata.cloud/ipfs/<%= kast.cid %>" style="width: 100%"></audio>
-            </div>
+                <!-- Row 2: Title + Edit + Username -->
+                <div class="d-flex justify-content-between align-items-center flex-wrap">
+                    <div class="d-flex align-items-center flex-grow-1">
+                    <span
+                        class="kast-title me-2"
+                        data-id="<%= kast.id %>"
+                        contenteditable="false"
+                        title="Click pencil to edit title"
+                    >
+                        <%= kast.title || "Untitled Kast" %>
+                    </span>
+                    <button class="edit-icon btn btn-sm btn-outline-light border-0" data-id="<%= kast.id %>">✏️</button>
+                    <span class="save-confirmation text-success fw-bold ms-2" style="opacity: 0;">✅</span>
+                    </div>
+                    <div class="kast-username small text-end">
+                    👤 <%= kast.username || "Unknown" %>
+                    </div>
+                </div>
+
+                <!-- Row 3: Audio -->
+                <div class="kast-audio mt-2">
+                    <audio controls src="https://gateway.pinata.cloud/ipfs/<%= kast.cid %>" style="width: 100%"></audio>
+                </div>
             </div>
 
         <% }) %>
@@ -131,6 +137,44 @@
     sel.removeAllRanges();
     sel.addRange(range);
   }
+
+  document.querySelectorAll(".kast-date").forEach(el => {
+    const raw = el.dataset.datetime;
+    const date = new Date(raw);
+    const now = new Date();
+
+    const isSameDay = (d1, d2) =>
+      d1.getFullYear() === d2.getFullYear() &&
+      d1.getMonth() === d2.getMonth() &&
+      d1.getDate() === d2.getDate();
+
+    const isYesterday = (d1, d2) => {
+      const yesterday = new Date(d2);
+      yesterday.setDate(yesterday.getDate() - 1);
+      return isSameDay(d1, yesterday);
+    };
+
+    let label;
+    if (isSameDay(date, now)) {
+      label = "Today";
+    } else if (isYesterday(date, now)) {
+      label = "Yesterday";
+    } else {
+      label = date.toLocaleDateString(undefined, {
+        year: "numeric",
+        month: "short",
+        day: "numeric"
+      });
+    }
+
+    const time = date.toLocaleTimeString(undefined, {
+      hour: "numeric",
+      minute: "2-digit",
+      hour12: true
+    });
+
+    el.textContent = `${label} – ${time}`;
+  });
 </script>
 
 

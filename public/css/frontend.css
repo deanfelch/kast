@@ -18,8 +18,26 @@ audio {
   align-items: center;
 }
 
+.kast-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.kast-title {
+  border-bottom: 1px dashed transparent;
+  padding: 2px 4px;
+  min-width: 100px;
+  max-width: 300px;
+}
+
+.kast-title.editing {
+  border-color: #0d6efd;
+  background-color: #222;
+  cursor: text;
+}
+
 .edit-icon {
-  width: 36px;
   background-color: transparent;
   border: none !important;
   box-shadow: none;
@@ -30,23 +48,9 @@ audio {
   cursor: pointer;
 }
 
-.edit-icon:focus,
-.edit-icon:active {
+.edit-icon:focus {
   outline: none;
   box-shadow: none;
-}
-
-.kast-title {
-  border-bottom: 1px dashed transparent;
-  padding: 2px 4px;
-  min-width: 100px;
-  cursor: default;
-}
-
-.kast-title.editing {
-  border-color: #0d6efd;
-  background-color: #222;
-  cursor: text;
 }
 
 .save-confirmation {
