@@ -29,13 +29,6 @@ audio {
   flex-wrap: nowrap;
 }
 
-.kast-title {
-  border-bottom: 1px dashed transparent;
-  padding: 2px 4px;
-  min-width: 100px;
-  max-width: 300px;
-}
-
 .kast-title.editing {
   border-color: #0d6efd;
   background-color: #222;
