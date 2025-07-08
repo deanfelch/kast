@@ -40,6 +40,7 @@ audio {
   border-bottom: 1px dashed transparent;
   padding: 2px 4px;
   min-width: 100px;
+  cursor: default;
 }
 
 .kast-title.editing {
@@ -69,7 +70,6 @@ audio {
   padding: 2rem;
   border-radius: 12px;
   box-shadow: 0 0 12px rgba(0, 0, 0, 0.5);
-  max-width: 400px;
   margin: 5vh auto;
   animation: fadeInUp 0.6s ease-out forwards;
 }

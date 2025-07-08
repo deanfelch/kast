@@ -26,9 +26,7 @@
         <div class="kast-item mb-4 p-3 bg-secondary bg-opacity-10 rounded">
             <!-- Top row: Date & Editable Title -->
             <div class="kast-title-container d-flex align-items-center gap-2">
-                <small class="text-muted me-2">
-                <%= new Date(kast.uploaded_at).toLocaleString() %>
-                </small>
+                <small><%= new Date(kast.uploaded_at).toLocaleString() %></small>
                 <span
                 class="kast-title"
                 data-id="<%= kast.id %>"
@@ -39,12 +37,10 @@
                 </span>
                 <button class="edit-icon btn btn-sm btn-outline-light border-0" data-id="<%= kast.id %>">✏️</button>
                 <span class="save-confirmation text-success fw-bold" style="opacity: 0;">✅</span>
-            </div>
-
-            <!-- Attribution -->
-            <div class="kast-username text-light-emphasis small mt-1 ms-1">
-                by <%= kast.username || "Unknown" %>
-            </div>
+                <span class="kast-username small mt-1 ms-1">
+                    by <%= kast.username || "Unknown" %>
+                </span>
+            </div>       
 
             <!-- Audio Player -->
             <div class="kast-audio mt-2">
