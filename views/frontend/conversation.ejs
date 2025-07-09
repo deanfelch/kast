@@ -15,7 +15,7 @@
     <div class="conversation-header d-flex justify-content-between align-items-center mb-4 flex-wrap">
         <div>
             <!-- Title + Edit -->
-            <div class="kast-title-wrapper d-flex align-items-center mb-2">
+            <div class="conersation-title-wrapper d-flex align-items-center mb-2">
             <span 
                 class="conversation-title fw-bold fs-3 me-2 text-light"
                 contenteditable="false"
@@ -29,12 +29,17 @@
             </div>
 
             <!-- Created by + shared users -->
-            <div class="text-muted small">
-            🎣 Created by <strong><%= conversation.creator_username %></strong>
+            <div class="small">
+                🎣 Created by <strong><%= conversation.creator_username %></strong>
+            </div>
+            <div class="small">
+                🎣 Shared with <strong>
             <% if (sharedUsers.length > 0) { %>
-                | Shared with: 
                 <%= sharedUsers.map(u => u.username).join(", ") %>
+            <% } else { %>
+                Nobody yet
             <% } %>
+                </strong>
             </div>
         </div>
 
