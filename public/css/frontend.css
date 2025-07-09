@@ -4,39 +4,21 @@
   margin-bottom: 1rem;
 }
 
-.conversation-title-wrapper {
-  display: flex;
-  align-items: center;
-  flex-wrap: nowrap;
+.conversation-card-link {
+  display: block;
+  transition: background-color 0.2s ease;
 }
 
-.conversation-title-wrapper a.conversation-title {
-  border-bottom: 1px dashed transparent;
-  padding: 2px 4px;
+.conversation-card-link:hover .conversation-card {
+  background-color: rgba(255, 255, 255, 0.07);
+}
+
+.conversation-card {
   cursor: pointer;
 }
 
-.conversation-title-wrapper a.conversation-title:hover {
-  text-decoration: underline;
-}
-
-.conversation-title.editing {
-  border-color: #0d6efd;
-  background-color: #222;
-  text-decoration: none;
-}
-
-.conversation-title {
-  border-bottom: 1px dashed transparent;
-  padding: 2px 4px;
-  min-width: 120px;
-  max-width: 100%;
-}
-
-.conversation-title.editing {
-  border-color: #0d6efd;
-  background-color: #222;
-  cursor: text;
+.conversation-card .kast-title-wrapper a {
+  pointer-events: none; /* So the inner title doesn't override the parent link */
 }
 
 .conversation-meta {

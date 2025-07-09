@@ -26,45 +26,35 @@
       </div>
     <% } else { %>
         <% conversations.forEach(convo => { %>
-        <div class="kast-item border rounded p-3 mb-4 bg-secondary bg-opacity-10">
-            <!-- Row 1: Title + Edit + Username -->
-            <div class="d-flex justify-content-between align-items-center flex-wrap">
-            <!-- Left: title and pencil/save -->
-            <div class="d-flex align-items-center flex-grow-1">
-                <div class="d-flex align-items-center kast-title-wrapper">
-                <a
-                    href="/conversation/<%= convo.id %>"
-                    class="conversation-title text-decoration-none text-light"
-                    data-id="<%= convo.id %>"
-                    contenteditable="false"
-                    title="Click pencil to edit title"
-                >
-                    <%= convo.title || "Untitled Conversation" %>
-                </a>
-                <button class="edit-icon btn btn-sm btn-outline-light border-0 ms-2" data-id="<%= convo.id %>">✏️</button>
-                <span class="save-confirmation text-success fw-bold ms-2" style="opacity: 0;">✅</span>
+        <a href="/conversation/<%= convo.id %>" class="conversation-card-link text-decoration-none text-reset">
+            <div class="conversation-card border rounded p-3 mb-4 bg-secondary bg-opacity-10">
+                <!-- Row 1: Title + Edit + Username -->
+                <div class="d-flex justify-content-between align-items-center flex-wrap">
+                <!-- Left: title and pencil/save -->
+                <div class="d-flex align-items-center flex-grow-1">
+                    <div><%= convo.title || "Untitled Conversation" %></div>
+                </div>
+
+                <!-- Right: username -->
+                <div class="kast-username small text-end ms-3">
+                    🎣<%= convo.owner_username || "Unknown" %>
+                </div>
+                </div>
+
+                <!-- Row 2: Stats -->
+                <div class="d-flex justify-content-between text-light-emphasis small mt-3 flex-wrap">
+                <div><%= convo.kast_count %> kasts</div>
+                <div data-datetime="<%= convo.last_kast %>" class="conversation-date"></div>
                 </div>
             </div>
-
-            <!-- Right: username -->
-            <div class="kast-username small text-end ms-3">
-                🎣<%= convo.owner_username || "Unknown" %>
-            </div>
-            </div>
-
-            <!-- Row 2: Stats -->
-            <div class="d-flex justify-content-between text-light-emphasis small mt-3 flex-wrap">
-            <div><%= convo.kast_count %> kasts</div>
-            <div data-datetime="<%= convo.last_kast %>" class="conversation-date"></div>
-            </div>
-        </div>
+        </a>
         <% }) %>
 
     <% } %>
    </div>
   </div>
 
-  <script>
+<script>
   // Format conversation dates
   document.querySelectorAll(".conversation-date").forEach(el => {
     const raw = el.dataset.datetime;
@@ -96,72 +86,6 @@
 
     el.textContent = `${label} – ${time}`;
   });
-
-  // Editable conversation titles
-  document.querySelectorAll(".edit-icon").forEach(btn => {
-    btn.addEventListener("click", () => {
-      const id = btn.dataset.id;
-      const wrapper = btn.closest(".conversation-title-wrapper");
-        const existing = wrapper.querySelector("a.conversation-title") || wrapper.querySelector("span.conversation-title");
-
-      // If it's an <a>, replace it with a <span>
-      if (existing.tagName === "A") {
-        const span = document.createElement("span");
-        span.className = existing.className;
-        span.textContent = existing.textContent;
-        span.dataset.id = id;
-        span.contentEditable = true;
-        span.classList.add("editing");
-        existing.parentNode.replaceChild(span, existing);
-        span.focus();
-        btn.textContent = "💾";
-      } else {
-        // It's a <span>, save the content
-        const newTitle = existing.textContent.trim();
-        fetch(`/conversations/${id}/title`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ title: newTitle })
-        })
-          .then(res => res.ok && res.json())
-          .then(() => {
-            const a = document.createElement("a");
-            a.href = `/conversation/${id}`;
-            a.className = existing.className.replace("editing", "");
-            a.textContent = newTitle || "Untitled Conversation";
-            a.dataset.id = id;
-            existing.parentNode.replaceChild(a, existing);
-            btn.textContent = "✏️";
-
-            const check = wrapper.querySelector(".save-confirmation");
-            if (check) {
-              check.classList.add("show");
-              setTimeout(() => check.classList.remove("show"), 1500);
-            }
-          })
-          .catch(err => {
-            console.error("Error saving title:", err);
-          });
-      }
-    });
-  });
-
-  // Save on blur or Enter key
-  document.addEventListener("keydown", e => {
-    if (e.key === "Enter" && e.target.classList.contains("conversation-title")) {
-      e.preventDefault();
-      e.target.blur();
-    }
-  });
-
-  document.addEventListener("blur", e => {
-    if (e.target.classList.contains("conversation-title") && e.target.tagName === "SPAN") {
-        const span = e.target;
-        const wrapper = span.closest(".conversation-title-wrapper");
-        const btn = wrapper?.querySelector(".edit-icon");
-        if (btn) btn.click(); // ✅ safe to call now
-    }
-    }, true);
 
 </script>
 
