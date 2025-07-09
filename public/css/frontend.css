@@ -1,3 +1,58 @@
+.conversation-dashboard .conversation-item {
+  border-bottom: 1px solid #444;
+  padding-bottom: 1rem;
+  margin-bottom: 1rem;
+}
+
+.conversation-title-wrapper {
+  display: flex;
+  align-items: center;
+  flex-wrap: nowrap;
+}
+
+.conversation-title-wrapper a.conversation-title {
+  border-bottom: 1px dashed transparent;
+  padding: 2px 4px;
+  cursor: pointer;
+}
+
+.conversation-title-wrapper a.conversation-title:hover {
+  text-decoration: underline;
+}
+
+.conversation-title.editing {
+  border-color: #0d6efd;
+  background-color: #222;
+  text-decoration: none;
+}
+
+.conversation-title {
+  border-bottom: 1px dashed transparent;
+  padding: 2px 4px;
+  min-width: 120px;
+  max-width: 100%;
+}
+
+.conversation-title.editing {
+  border-color: #0d6efd;
+  background-color: #222;
+  cursor: text;
+}
+
+.conversation-meta {
+  font-size: 0.9rem;
+  color: #aaa;
+}
+
+.save-confirmation {
+  transition: opacity 0.3s ease-in-out;
+}
+
+.save-confirmation.show {
+  opacity: 1;
+}
+
+
 .recording-row {
   border-bottom: 1px solid #444;
   padding: 1rem 0;
