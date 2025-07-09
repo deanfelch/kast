@@ -125,7 +125,7 @@ router.post("/conversations/:id/title", ensureLoggedIn, async (req, res) => {
   try {
     // Optional: verify ownership
     const [rows] = await db.execute(
-      "SELECT id FROM conversations WHERE id = ? AND user_id = ?",
+      `SELECT * FROM conversation_users WHERE conversation_id = ? AND user_id = ?`,
       [conversationId, userId]
     );
 
