@@ -26,41 +26,41 @@
       </div>
     <% } else { %>
         <% conversations.forEach(convo => { %>
-            <div class="kast-item border rounded p-3 mb-4 bg-secondary bg-opacity-10">
-                <!-- Row 1: Title + Edit + Username -->
-                <div class="d-flex justify-content-between align-items-center flex-wrap">
-                    <!-- Left: title and pencil/save -->
-                    <div class="d-flex align-items-center flex-grow-1">
-                        <div class="d-flex align-items-center kast-title-wrapper">
-                            <a
-                                href="/conversation/<%= convo.id %>"
-                                class="conversation-title text-decoration-none text-light"
-                                data-id="<%= convo.id %>"
-                                contenteditable="false"
-                                title="Click pencil to edit title"
-                            >
-                                <%= convo.title || "Untitled Conversation" %>
-                            </a>
-                            <button class="edit-icon btn btn-sm btn-outline-light border-0" data-id="<%= convo.id %>">✏️</button>
-                            <span class="save-confirmation text-success fw-bold ms-2" style="opacity: 0;">✅</span>
-                        </div>
-                    </div>
-
-                    <!-- Right: username -->
-                    <div class="kast-username small text-end ms-3">
-                        🎣<%= convo.owner_username || "Unknown" %>
-                    </div>
+        <div class="kast-item border rounded p-3 mb-4 bg-secondary bg-opacity-10">
+            <!-- Row 1: Title + Edit + Username -->
+            <div class="d-flex justify-content-between align-items-center flex-wrap">
+            <!-- Left: title and pencil/save -->
+            <div class="d-flex align-items-center flex-grow-1">
+                <div class="d-flex align-items-center kast-title-wrapper">
+                <a
+                    href="/conversation/<%= convo.id %>"
+                    class="conversation-title text-decoration-none text-light"
+                    data-id="<%= convo.id %>"
+                    contenteditable="false"
+                    title="Click pencil to edit title"
+                >
+                    <%= convo.title || "Untitled Conversation" %>
+                </a>
+                <button class="edit-icon btn btn-sm btn-outline-light border-0 ms-2" data-id="<%= convo.id %>">✏️</button>
+                <span class="save-confirmation text-success fw-bold ms-2" style="opacity: 0;">✅</span>
                 </div>
+            </div>
+
+            <!-- Right: username -->
+            <div class="kast-username small text-end ms-3">
+                🎣<%= convo.owner_username || "Unknown" %>
+            </div>
             </div>
 
             <!-- Row 2: Stats -->
-            <div class="d-flex justify-content-between text-light-emphasis small mt-2 flex-wrap">
-                <div><%= convo.kast_count %> kasts</div>
-                <div data-datetime="<%= convo.last_kast %>" class="conversation-date">
-                <!-- formatted by JS -->
-                </div>
+            <div class="d-flex justify-content-between text-light-emphasis small mt-3 flex-wrap">
+            <div><%= convo.kast_count %> kasts</div>
+            <div data-datetime="<%= convo.last_kast %>" class="conversation-date"></div>
             </div>
+        </div>
         <% }) %>
+
+    <% } %>
    </div>
   </div>
 
