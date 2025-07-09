@@ -9,46 +9,68 @@
 <link rel="stylesheet" href="/css/frontend.css" />
 </head>
 <body class="bg-dark text-light">
-  <div class="login-box text-center">
-    <h1>Kast Dashboard</h1>
-    <h2>Your Conversations</h2>
-    <ul>
-    <% conversations.forEach(convo => { %>
-        <div class="conversation-item border-bottom py-3">
-            <!-- Row 1: Editable title -->
-            <div class="d-flex justify-content-between align-items-center flex-wrap">
-                <div class="d-flex align-items-center flex-grow-1">
-                <div class="conversation-title-wrapper d-flex align-items-center">
-                    <span class="conversation-title-wrapper me-2">
-                        <a
-                            href="/conversation/<%= convo.id %>"
-                            class="conversation-title text-decoration-none text-light"
-                            data-id="<%= convo.id %>"
-                            contenteditable="false"
-                            title="Click pencil to edit title"
-                        >
-                            <%= convo.title || "Untitled Conversation" %>
-                        </a>
-                    </span>
-                    <button class="edit-icon btn btn-sm btn-outline-light border-0" data-id="<%= convo.id %>">✏️</button>
-                    <span class="save-confirmation text-success fw-bold ms-2" style="opacity: 0;">✅</span>
-                </div>
-                </div>
-                <div class="conversation-meta text-muted small text-end ms-3">
-                Owner: <%= convo.owner_username %>
-                </div>
-            </div>
+  <div class="container py-5">
+    <div class="conversation-header">
+      <h2 class="mb-0">Kastboard</h2>
+      <h2>
+        <form action="/conversations/new" method="POST" style="display: inline;">
+            <button type="submit" class="btn btn-primary">➕ New</button>
+        </form>
+        </h2>
+    </div>
 
-            <!-- Row 2: Stats -->
-            <div class="d-flex justify-content-between text-light-emphasis small mt-2 flex-wrap">
-                <div><%= convo.kast_count %> kasts</div>
-                <div data-datetime="<%= convo.last_kast %>" class="conversation-date">
-                <!-- formatted by JS -->
+   <div class="recording-list">
+    <% if (conversations.length === 0) { %>
+      <div class="alert alert-secondary text-center">
+        No conversations yet. Click “New” to create one.
+      </div>
+    <% } else { %>
+        <% conversations.forEach(convo => { %>
+            <div class="kast-item border rounded p-3 mb-4 bg-secondary bg-opacity-10">
+                <!-- Row 1: Title + Edit + Username -->
+                <div class="d-flex justify-content-between align-items-center flex-wrap">
+                    <!-- Left: title and pencil/save -->
+                    <div class="d-flex align-items-center flex-grow-1">
+                        <div class="d-flex align-items-center kast-title-wrapper">
+                            <a
+                                href="/conversation/<%= convo.id %>"
+                                class="conversation-title text-decoration-none text-light"
+                                data-id="<%= convo.id %>"
+                                contenteditable="false"
+                                title="Click pencil to edit title"
+                            >
+                                <%= convo.title || "Untitled Conversation" %>
+                            </a>
+                            <button class="edit-icon btn btn-sm btn-outline-light border-0" data-id="<%= convo.id %>">✏️</button>
+                            <span class="save-confirmation text-success fw-bold ms-2" style="opacity: 0;">✅</span>
+                        </div>
+                    </div>
+
+                    <!-- Right: username -->
+                    <div class="kast-username small text-end ms-3">
+                        🎣<%= convo.owner_username || "Unknown" %>
+                    </div>
                 </div>
-            </div>
-            </div>
-    <% }) %>
-    </ul>
+
+                           
+                        
+                    </div>
+                    </div>
+                    <div class="conversation-meta text-muted small text-end ms-3">
+                    Owner: <%= convo.owner_username %>
+                    </div>
+                </div>
+
+                <!-- Row 2: Stats -->
+                <div class="d-flex justify-content-between text-light-emphasis small mt-2 flex-wrap">
+                    <div><%= convo.kast_count %> kasts</div>
+                    <div data-datetime="<%= convo.last_kast %>" class="conversation-date">
+                    <!-- formatted by JS -->
+                    </div>
+                </div>
+                </div>
+        <% }) %>
+   </div>
   </div>
 
   <script>

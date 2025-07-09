@@ -13,10 +13,17 @@ router.get("/dashboard", ensureLoggedIn, async (req, res) => {
   const userId = req.session.user.id;
 
   const [conversations] = await db.execute(`
-    SELECT c.id, c.title, c.created_at, COUNT(u.id) as kast_count
+    SELECT 
+      c.id,
+      c.title,
+      c.created_at,
+      u_creator.username AS creator_username,
+      COUNT(u.id) AS kast_count
     FROM conversations c
+    JOIN conversation_users cu ON cu.conversation_id = c.id
+    JOIN users u_creator ON c.created_by = u_creator.id
     LEFT JOIN uploads u ON c.id = u.conversation_id
-    WHERE c.user_id = ?
+    WHERE cu.user_id = ?
     GROUP BY c.id
     ORDER BY c.created_at DESC
   `, [userId]);
@@ -26,6 +33,35 @@ router.get("/dashboard", ensureLoggedIn, async (req, res) => {
     conversations
   });
 });
+
+router.post("/conversations/new", ensureLoggedIn, async (req, res) => {
+  const userId = req.session.user.id;
+
+  const weekday = new Date().toLocaleDateString(undefined, { weekday: "long" });
+  const title = `New ${weekday} Conversation`;
+
+  try {
+    // Insert new conversation
+    const [result] = await db.execute(
+      `INSERT INTO conversations (title, created_by) VALUES (?, ?)`,
+      [title, userId]
+    );
+
+    const conversationId = result.insertId;
+
+    // Add creator to conversation_users
+    await db.execute(
+      `INSERT INTO conversation_users (conversation_id, user_id) VALUES (?, ?)`,
+      [conversationId, userId]
+    );
+
+    res.redirect(`/conversation/${conversationId}`);
+  } catch (err) {
+    console.error("❌ Failed to create new conversation:", err);
+    res.status(500).send("Failed to create new conversation");
+  }
+});
+
 
 // View a specific conversation
 router.get("/conversation/:id", ensureLoggedIn, async (req, res) => {
