@@ -7,15 +7,25 @@ function makeEditableTitle({
 }) {
   document.querySelectorAll(containerSelector).forEach(wrapper => {
     const btn = wrapper.querySelector(buttonSelector);
-    if (!btn) return;
+    const titleEl = wrapper.querySelector(titleSelector);
+    if (!btn || !titleEl) return;
 
     btn.addEventListener("click", () => {
-      console.log("🖊 Edit button clicked");
-      const titleEl = wrapper.querySelector(titleSelector);
       const id = titleEl.getAttribute(idAttribute);
 
-      if (titleEl.tagName === "SPAN") {
+      // Toggle edit mode
+      const isEditing = titleEl.isContentEditable;
+
+      if (!isEditing) {
+        console.log("🖊 Entering edit mode");
+        titleEl.contentEditable = "true";
+        titleEl.classList.add("editing");
+        titleEl.focus();
+        btn.textContent = "💾";
+      } else {
+        console.log("💾 Saving title");
         const newTitle = titleEl.textContent.trim();
+
         fetch(saveUrlFn(id), {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -23,31 +33,18 @@ function makeEditableTitle({
         })
         .then(res => res.ok && res.json())
         .then(() => {
-          const newEl = document.createElement("span");
-          newEl.className = titleEl.className.replace("editing", "");
-          newEl.textContent = newTitle || "Untitled";
-          newEl.setAttribute(idAttribute, id);
-          newEl.setAttribute("title", "Click pencil to edit title");
-          newEl.contentEditable = false;
-          wrapper.replaceChild(newEl, titleEl);
-
+          titleEl.contentEditable = "false";
+          titleEl.classList.remove("editing");
+          titleEl.textContent = newTitle || "Untitled";
           btn.textContent = "✏️";
+
           const check = wrapper.querySelector(".save-confirmation");
           if (check) {
             check.classList.add("show");
             setTimeout(() => check.classList.remove("show"), 1500);
           }
         })
-        .catch(err => console.error("Error saving title:", err));
-      } else {
-        const newEl = document.createElement("span");
-        newEl.className = titleEl.className + " editing";
-        newEl.textContent = titleEl.textContent;
-        newEl.setAttribute(idAttribute, id);
-        newEl.contentEditable = true;
-        wrapper.replaceChild(newEl, titleEl);
-        newEl.focus();
-        btn.textContent = "💾";
+        .catch(err => console.error("❌ Error saving title:", err));
       }
     });
 
@@ -59,7 +56,7 @@ function makeEditableTitle({
     });
 
     wrapper.addEventListener("blur", e => {
-      if (e.target.matches(titleSelector) && e.target.tagName === "SPAN") {
+      if (e.target.matches(titleSelector) && e.target.isContentEditable) {
         btn.click();
       }
     }, true);
