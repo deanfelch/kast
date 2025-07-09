@@ -51,24 +51,15 @@
                         🎣<%= convo.owner_username || "Unknown" %>
                     </div>
                 </div>
+            </div>
 
-                           
-                        
-                    </div>
-                    </div>
-                    <div class="conversation-meta text-muted small text-end ms-3">
-                    Owner: <%= convo.owner_username %>
-                    </div>
+            <!-- Row 2: Stats -->
+            <div class="d-flex justify-content-between text-light-emphasis small mt-2 flex-wrap">
+                <div><%= convo.kast_count %> kasts</div>
+                <div data-datetime="<%= convo.last_kast %>" class="conversation-date">
+                <!-- formatted by JS -->
                 </div>
-
-                <!-- Row 2: Stats -->
-                <div class="d-flex justify-content-between text-light-emphasis small mt-2 flex-wrap">
-                    <div><%= convo.kast_count %> kasts</div>
-                    <div data-datetime="<%= convo.last_kast %>" class="conversation-date">
-                    <!-- formatted by JS -->
-                    </div>
-                </div>
-                </div>
+            </div>
         <% }) %>
    </div>
   </div>
