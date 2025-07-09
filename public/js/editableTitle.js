@@ -17,13 +17,20 @@ function makeEditableTitle({
       const isEditing = titleEl.isContentEditable;
 
       if (!isEditing) {
-        console.log("🖊 Entering edit mode");
         titleEl.contentEditable = "true";
         titleEl.classList.add("editing");
         titleEl.focus();
+
+        // Move cursor to end of content
+        const range = document.createRange();
+        const sel = window.getSelection();
+        range.selectNodeContents(titleEl);
+        range.collapse(false); // move to end
+        sel.removeAllRanges();
+        sel.addRange(range);
+
         btn.textContent = "💾";
       } else {
-        console.log("💾 Saving title");
         const newTitle = titleEl.textContent.trim();
 
         fetch(saveUrlFn(id), {
