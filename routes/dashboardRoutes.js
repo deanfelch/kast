@@ -13,20 +13,23 @@ router.get("/dashboard", ensureLoggedIn, async (req, res) => {
   const userId = req.session.user.id;
 
   const [conversations] = await db.execute(`
-    SELECT 
-      c.id,
-      c.title,
-      c.created_at,
-      u_creator.username AS creator_username,
-      COUNT(u.id) AS kast_count
-    FROM conversations c
-    JOIN conversation_users cu ON cu.conversation_id = c.id
-    JOIN users u_creator ON c.created_by = u_creator.id
-    LEFT JOIN uploads u ON c.id = u.conversation_id
-    WHERE cu.user_id = ?
-    GROUP BY c.id
-    ORDER BY c.created_at DESC
-  `, [userId]);
+  SELECT 
+    c.id,
+    c.title,
+    c.created_at,
+    COUNT(u.id) as kast_count,
+    c.created_by,
+    creator.username AS owner_username,
+    MAX(u.uploaded_at) AS last_kast
+  FROM conversations c
+  LEFT JOIN uploads u ON c.id = u.conversation_id
+  LEFT JOIN users creator ON c.created_by = creator.id
+  WHERE EXISTS (
+    SELECT 1 FROM conversation_users cu WHERE cu.conversation_id = c.id AND cu.user_id = ?
+  )
+  GROUP BY c.id
+  ORDER BY c.created_at DESC
+`, [userId]);
 
   res.render("frontend/dashboard", {
     user: req.session.user,
