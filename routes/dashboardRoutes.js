@@ -71,6 +71,27 @@ router.get("/conversation/:id", ensureLoggedIn, async (req, res) => {
   const conversationId = req.params.id;
   const userId = req.session.user.id;
 
+  // Get conversation metadata including creator
+  const [[conversation]] = await db.execute(`
+    SELECT c.id, c.title, c.created_by, u.username AS creator_username
+    FROM conversations c
+    LEFT JOIN users u ON c.created_by = u.id
+    WHERE c.id = ?
+  `, [conversationId]);
+
+  if (!conversation) {
+    return res.status(404).send("Conversation not found");
+  }
+
+  // Fetch shared users (excluding creator)
+  const [sharedUsers] = await db.execute(`
+    SELECT u.username
+    FROM conversation_users cu
+    JOIN users u ON cu.user_id = u.id
+    WHERE cu.conversation_id = ? AND cu.user_id != ?
+  `, [conversationId, conversation.created_by]);
+
+  // Fetch only the current user's uploads in this conversation
   const [kasts] = await db.execute(`
     SELECT 
         u.id,
@@ -84,14 +105,16 @@ router.get("/conversation/:id", ensureLoggedIn, async (req, res) => {
     LEFT JOIN users us ON u.user_id = us.id
     WHERE u.conversation_id = ? AND u.user_id = ?
     ORDER BY u.uploaded_at DESC
-    `, [conversationId, req.session.user.id]);
+  `, [conversationId, userId]);
 
   res.render("frontend/conversation", {
     user: req.session.user,
-    conversationId,
+    conversation,
+    sharedUsers,
     kasts
   });
 });
+
 
 // Update conversation title
 router.post("/conversations/:id/title", ensureLoggedIn, async (req, res) => {
