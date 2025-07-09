@@ -10,6 +10,7 @@ function makeEditableTitle({
     if (!btn) return;
 
     btn.addEventListener("click", () => {
+      console.log("🖊 Edit button clicked");
       const titleEl = wrapper.querySelector(titleSelector);
       const id = titleEl.getAttribute(idAttribute);
 
