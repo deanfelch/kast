@@ -54,4 +54,33 @@ router.get("/conversation/:id", ensureLoggedIn, async (req, res) => {
   });
 });
 
+// Update conversation title
+router.post("/conversations/:id/title", ensureLoggedIn, async (req, res) => {
+  const conversationId = req.params.id;
+  const { title } = req.body;
+  const userId = req.session.user.id;
+
+  try {
+    // Optional: verify ownership
+    const [rows] = await db.execute(
+      "SELECT id FROM conversations WHERE id = ? AND user_id = ?",
+      [conversationId, userId]
+    );
+
+    if (rows.length === 0) {
+      return res.status(403).json({ error: "Unauthorized" });
+    }
+
+    await db.execute(
+      "UPDATE conversations SET title = ? WHERE id = ?",
+      [title, conversationId]
+    );
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error("Error updating title:", err.message);
+    res.status(500).json({ error: "Database error" });
+  }
+});
+
 module.exports = router;
