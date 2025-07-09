@@ -89,7 +89,7 @@
     btn.addEventListener("click", () => {
       const id = btn.dataset.id;
       const wrapper = btn.closest(".conversation-title-wrapper");
-      const existing = wrapper.querySelector(".conversation-title");
+        const existing = wrapper.querySelector("a.conversation-title") || wrapper.querySelector("span.conversation-title");
 
       // If it's an <a>, replace it with a <span>
       if (existing.tagName === "A") {
@@ -99,13 +99,13 @@
         span.dataset.id = id;
         span.contentEditable = true;
         span.classList.add("editing");
-        wrapper.replaceChild(span, existing);
+        existing.parentNode.replaceChild(span, existing);
         span.focus();
         btn.textContent = "💾";
       } else {
         // It's a <span>, save the content
         const newTitle = existing.textContent.trim();
-        fetch(`/conversations/${id}/title`, {
+        fetch(`/conversation/${id}/title`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ title: newTitle })
@@ -113,11 +113,11 @@
           .then(res => res.ok && res.json())
           .then(() => {
             const a = document.createElement("a");
-            a.href = `/conversations/${id}`;
+            a.href = `/conversation/${id}`;
             a.className = existing.className.replace("editing", "");
             a.textContent = newTitle || "Untitled Conversation";
             a.dataset.id = id;
-            wrapper.replaceChild(a, existing);
+            existing.parentNode.replaceChild(a, existing);
             btn.textContent = "✏️";
 
             const check = wrapper.querySelector(".save-confirmation");
